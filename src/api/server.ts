@@ -71,7 +71,7 @@ function requireAuth(req: Request): boolean {
   const token = authHeader.replace("Bearer ", "");
 
   // In dev mode, allow any Bearer token
-  if (process.env.NODE_ENV === "development") {
+  if (process.env.NODE_ENV !== "production") {
     return token.length > 0;
   }
 
