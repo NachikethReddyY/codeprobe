@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(git init *)",
-      "Bash(bun init *)"
+      "Bash(bun init *)",
+      "Bash(git add *)",
+      "Bash(git commit -m 'docs: Add 3-stage MVP build playbook with critical fixes *)"
     ]
   }
 }
