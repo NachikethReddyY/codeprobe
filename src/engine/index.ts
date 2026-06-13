@@ -14,6 +14,10 @@ export class CodeProbeEngine {
   private patcher = createPatcher();
   private reportBuilder = createReportBuilder();
 
+  getVideoRecorder() {
+    return this.sandbox.getVideoRecorder();
+  }
+
   async scan(repoPath: string): Promise<Report> {
     const startTime = Date.now();
 

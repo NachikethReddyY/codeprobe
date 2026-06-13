@@ -1,11 +1,13 @@
 import { Daytona } from "@daytona/sdk";
 import { SandboxResult } from "../shared/types";
 import { TIMEOUTS, RETRY_CONFIG, DEMO_CVE } from "../shared/constants";
+import { createVideoDBRecorder } from "../integrations/videodb";
 
 export class SandboxOrchestrator {
   private apiKey: string;
   private daytonaClient: Daytona | null = null;
   private useDaytona: boolean = false;
+  private videoRecorder = createVideoDBRecorder();
 
   constructor() {
     this.apiKey = process.env.DAYTONA_API_KEY || "";
@@ -99,11 +101,21 @@ try {
 
       const result = await sandbox.process.codeRun(exploitCode);
       const success = result.result?.includes("RCE_SUCCESS");
+      const output = `[Daytona] EJS ${version} - ${success ? "EXPLOITABLE" : "PATCHED"}\n${result.result || ""}`;
+
+      // Record exploit execution to VideoDB
+      await this.videoRecorder.recordExploit(
+        DEMO_CVE.id,
+        DEMO_CVE.package,
+        version,
+        output,
+        15 // 15 second recording
+      );
 
       return {
         exploit_ran: true,
         exit_code: success ? 0 : 1,
-        stdout: `[Daytona] EJS ${version} - ${success ? "EXPLOITABLE" : "PATCHED"}\n${result.result || ""}`,
+        stdout: output,
         stderr: "",
         success: success,
         time_ms: Date.now() - startTime,
@@ -200,6 +212,10 @@ try {
     }
 
     return results;
+  }
+
+  getVideoRecorder() {
+    return this.videoRecorder;
   }
 }
 

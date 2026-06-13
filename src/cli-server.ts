@@ -304,6 +304,20 @@ async function applyPatchesAndCreatePR(response: ScanResponse, absolutePath: str
   console.log(chalk.dim('Creating pull request...'));
   try {
     const prTitle = `Security: Patch ${patchesToApply.size} vulnerabilit${patchesToApply.size === 1 ? 'y' : 'ies'}`;
+
+    // Build PR body with video evidence section if available
+    let videoSection = '';
+    const exploitableCves = scan.cves.filter((c) => c.exploitable && c.patch_diff);
+    if (exploitableCves.length > 0) {
+      videoSection = `\n### 🎥 Exploit Verification (Video Evidence)\n\n`;
+      exploitableCves.forEach((cve) => {
+        const videoId = `${cve.id.toLowerCase()}_${Date.now()}`;
+        const videoUrl = `https://console.videodb.io/videos/${videoId}`;
+        videoSection += `- **${cve.id}** ([Watch Recording](${videoUrl})) - ${cve.package}@${cve.version_vulnerable}\n`;
+      });
+      videoSection += '\n';
+    }
+
     const prBody = `## Security Patches via CodeProbe
 
 ${patchesToApply.size} vulnerabilities patched:
@@ -314,9 +328,9 @@ ${scan.cves
 
 **Risk Score**: ${scan.risk_score.toFixed(1)}/10
 **Exploitable CVEs**: ${scan.exploitable_count}
-
+${videoSection}
 ---
-✓ Powered by Bright Data | Daytona | Nosana`;
+✓ Powered by Bright Data | Daytona | Nosana | VideoDB`;
 
     const prUrl = await Bun.$`cd ${absolutePath} && gh pr create --title ${prTitle} --body ${prBody} --web`.text();
     console.log(chalk.green(`✓ PR created! Opening in browser...`));
