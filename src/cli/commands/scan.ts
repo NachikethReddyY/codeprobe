@@ -78,7 +78,8 @@ function displayReport(report: Report, json: boolean, durationMs: number): void 
         `Theoretical Risk: ${report.summary.theoretical_count}`
     )
   );
-  console.log(`Patches Available: ${report.scan.patches_available}`);
+  const patchCount = report.scan.patches_available ?? 0;
+  console.log(chalk.green(`Patches Available: ${patchCount}/${report.summary.total_cves}`));
   console.log(`Duration: ${msToHuman(durationMs)}`);
 
   if (report.scan.cves.length > 0) {

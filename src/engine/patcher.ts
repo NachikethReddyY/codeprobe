@@ -90,14 +90,14 @@ export class PatchGenerator {
     // Try Nosana LLM if Kimi failed
     if (this.nosanaApiKey) {
       try {
-        console.log(`[Nosana] Generating patch for ${cve.id}...`);
-        const patch = await this.generatePatchWithNosana(cve);
+        console.log(`[Kimi] Generating patch for ${cve.id}...`);
+        const patch = await this.generatePatchWithKimi(cve);
         if (patch) {
           cve.patch_diff = patch;
           return patch;
         }
       } catch (error) {
-        console.warn(`[Nosana] Failed to generate patch: ${error instanceof Error ? error.message : String(error)}`);
+        console.warn(`[Kimi] Failed to generate patch: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
 

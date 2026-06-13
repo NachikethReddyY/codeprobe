@@ -12,6 +12,7 @@ export class ReportBuilder {
     dependencies: number
   ): Promise<Report> {
     const exploitableCves = cves.filter((c) => c.exploitable);
+    const patchesAvailable = cves.filter((c) => c.patch_diff).length;
 
     const scan: Scan = {
       id: this.generateScanId(),
@@ -23,6 +24,7 @@ export class ReportBuilder {
       exploitable_count: exploitableCves.length,
       theoretical_count: cves.length - exploitableCves.length,
       total_dependencies: dependencies,
+      patches_available: patchesAvailable,
     };
 
     const report: Report = {
