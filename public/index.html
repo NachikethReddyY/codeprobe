@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CodeProbe - Vulnerability Scanner</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      color: white;
+      margin-bottom: 60px;
+      padding: 40px 0;
+    }
+
+    h1 {
+      font-size: 3em;
+      margin-bottom: 10px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .subtitle {
+      font-size: 1.2em;
+      opacity: 0.9;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 30px;
+      margin-bottom: 40px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+    }
+
+    .card h2 {
+      color: #667eea;
+      margin-bottom: 15px;
+      font-size: 1.5em;
+    }
+
+    .card p {
+      color: #666;
+      line-height: 1.6;
+      margin-bottom: 15px;
+    }
+
+    .code-block {
+      background: #f5f5f5;
+      border-left: 4px solid #667eea;
+      padding: 15px;
+      border-radius: 4px;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 0.9em;
+      overflow-x: auto;
+      margin: 15px 0;
+    }
+
+    .btn {
+      display: inline-block;
+      background: #667eea;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 6px;
+      text-decoration: none;
+      transition: background 0.3s;
+      margin-top: 10px;
+    }
+
+    .btn:hover {
+      background: #764ba2;
+    }
+
+    .features {
+      background: white;
+      border-radius: 12px;
+      padding: 40px;
+      margin-bottom: 40px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+
+    .features h2 {
+      color: #667eea;
+      margin-bottom: 30px;
+      font-size: 2em;
+    }
+
+    .feature-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+    }
+
+    .feature-item {
+      padding: 20px;
+      border-left: 4px solid #667eea;
+    }
+
+    .feature-item h3 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .feature-item p {
+      color: #666;
+      font-size: 0.95em;
+    }
+
+    footer {
+      text-align: center;
+      color: white;
+      padding: 20px;
+      opacity: 0.9;
+    }
+
+    .emoji {
+      font-size: 2em;
+      margin-right: 10px;
+    }
+
+    .status-badge {
+      display: inline-block;
+      background: #4caf50;
+      color: white;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.9em;
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>⚡ CodeProbe</h1>
+      <p class="subtitle">Automated Vulnerability Scanner with Real Exploit Verification</p>
+      <span class="status-badge">✓ Production Ready</span>
+    </header>
+
+    <div class="features">
+      <h2>🚀 Features</h2>
+      <div class="feature-list">
+        <div class="feature-item">
+          <h3>🔍 CVE Scanning</h3>
+          <p>Real-time vulnerability detection using Bright Data with centralized database</p>
+        </div>
+        <div class="feature-item">
+          <h3>🏗️ Exploit Verification</h3>
+          <p>Daytona sandboxes test if vulnerabilities are actually exploitable on your machine</p>
+        </div>
+        <div class="feature-item">
+          <h3>🤖 AI Patch Generation</h3>
+          <p>Kimi LLM generates security patches automatically with Nosana GPU fallback</p>
+        </div>
+        <div class="feature-item">
+          <h3>🎥 Video Evidence</h3>
+          <p>VideoDB records every exploit as irrefutable proof in GitHub PRs</p>
+        </div>
+        <div class="feature-item">
+          <h3>📊 Cloud Database</h3>
+          <p>Firestore stores all CVEs, scanned hourly via Cloud Scheduler</p>
+        </div>
+        <div class="feature-item">
+          <h3>🔐 GitHub Integration</h3>
+          <p>Automatically creates PRs with patches and evidence links</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>📖 Getting Started</h2>
+        <p>Install and run CodeProbe on any machine with a single command:</p>
+        <div class="code-block">npm install -g codeprobe-scanner</div>
+        <div class="code-block">npx codeprobe-scanner scan /path/to/repo --fix</div>
+        <p>That's it! The CLI will:</p>
+        <ul style="margin-left: 20px; color: #666;">
+          <li>Auto-install Bun if needed</li>
+          <li>Query cloud database for known CVEs</li>
+          <li>Test vulnerabilities locally</li>
+          <li>Generate patches with AI</li>
+          <li>Create GitHub PR with evidence</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h2>🌐 Cloud Deployment</h2>
+        <p>Deploy the server to Google Cloud Run:</p>
+        <div class="code-block">gcloud run deploy codeprobe-api \
+  --source . \
+  --platform managed \
+  --region us-central1</div>
+        <p><strong>Cloud URL:</strong><br>
+        https://codeprobe-901164477360.us-central1.run.app</p>
+        <a href="./CLOUD_ARCHITECTURE.md" class="btn">View Full Architecture</a>
+      </div>
+
+      <div class="card">
+        <h2>💻 Local Development</h2>
+        <p>Run the server locally for testing:</p>
+        <div class="code-block">bun src/api/server-cli.ts</div>
+        <p>Then in another terminal:</p>
+        <div class="code-block">SERVER_URL=http://localhost:8080 \
+CODEPROBE_SECRET=dev-token \
+npx codeprobe-scanner scan .</div>
+        <a href="./QUICKSTART.md" class="btn">Quick Start Guide</a>
+      </div>
+
+      <div class="card">
+        <h2>🔑 API Keys & Config</h2>
+        <p>Required environment variables (keep in .env, never commit):</p>
+        <div class="code-block">BRIGHT_DATA_API_KEY=***
+DAYTONA_API_KEY=***
+KIMI_API_KEY=***
+NOSANA_API_KEY=***
+VIDEODB_API_KEY=***</div>
+        <p><code>.env</code> is in <code>.gitignore</code> - stay secure!</p>
+        <a href="./API_INTEGRATIONS.md" class="btn">API Details</a>
+      </div>
+
+      <div class="card">
+        <h2>📊 How It Works</h2>
+        <ol style="margin-left: 20px; color: #666; line-height: 2;">
+          <li><strong>Local Scan:</strong> Parse dependencies on your machine</li>
+          <li><strong>Cloud Lookup:</strong> Query Firestore for known CVEs</li>
+          <li><strong>Sandbox Test:</strong> Daytona verifies exploitability locally</li>
+          <li><strong>AI Patch:</strong> Kimi generates fixes automatically</li>
+          <li><strong>Record:</strong> VideoDB captures exploit as proof</li>
+          <li><strong>Create PR:</strong> GitHub PR with video evidence</li>
+        </ol>
+      </div>
+
+      <div class="card">
+        <h2>🛠️ Resources</h2>
+        <ul style="margin-left: 20px; color: #666; line-height: 2;">
+          <li><a href="https://github.com/NachikethReddyY/codeprobe" style="color: #667eea;">GitHub Repository</a></li>
+          <li><a href="https://www.npmjs.com/package/codeprobe-scanner" style="color: #667eea;">NPM Package</a></li>
+          <li><a href="./IMPLEMENTATION_SUMMARY.md" style="color: #667eea;">Implementation Details</a></li>
+          <li><a href="./INTERACTIVE_FIX_FLOW.md" style="color: #667eea;">Interactive Fix Mode</a></li>
+          <li><a href="./VIDEODB_INTEGRATION.md" style="color: #667eea;">VideoDB Integration</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <footer>
+      <p>✓ Powered by Bright Data | Daytona | Kimi | Nosana | VideoDB</p>
+      <p>CodeProbe v1.0.4 • Production Ready</p>
+    </footer>
+  </div>
+</body>
+</html>
