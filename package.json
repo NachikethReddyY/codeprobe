@@ -1,10 +1,10 @@
 {
   "name": "codeprobe-scanner",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Automated vulnerability scanner with exploit verification and video evidence",
   "type": "module",
   "bin": {
-    "codeprobe": "bin/install-and-run.sh"
+    "codeprobe": "bin/codeprobe.js"
   },
   "publishConfig": {
     "access": "public"
