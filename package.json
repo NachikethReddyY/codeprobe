@@ -5,7 +5,7 @@
   "type": "module",
   "private": true,
   "bin": {
-    "codeprobe": "./src/cli/index.ts"
+    "codeprobe": "src/cli/index.ts"
   },
   "scripts": {
     "api": "bun --hot src/api/server.ts",
@@ -13,6 +13,12 @@
     "dev": "echo 'Run in separate terminals: bun run api && bun run frontend'",
     "build": "bunx vite build src/dashboard",
     "test": "bun test"
+    "test": "bun test",
+    "dev": "bun run src/api/server.ts",
+    "bot": "bun run src/bot/server.ts",
+    "mcp": "bun run src/mcp/server.ts",
+    "build": "bun build src/dashboard/frontend.tsx --outdir dist",
+    "action": "bun run src/cli/index.ts scan . --sarif"
   },
   "dependencies": {
     "react": "^18.2.0",
@@ -24,10 +30,14 @@
     "dayjs": "^1.11.10",
     "cli-table3": "^0.6.3",
     "ora": "^8.0.1"
+    "ora": "^8.0.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "tailwindcss": "^3.3.0"
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "@types/node": "latest",
+    "@types/node": "^20.10.6",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "vite": "^5.0.0",

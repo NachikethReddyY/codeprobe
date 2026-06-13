@@ -17,16 +17,39 @@ async function getScans() {
   try {
     const fs = await import("fs");
     const fileNames = fs.readdirSync(scansDir);
-    const scans = await Promise.all(
-      fileNames
-        .filter((f) => f.endsWith(".json"))
-        .map(async (f) => {
-          const path = `${scansDir}/${f}`;
-          const content = await Bun.file(path).text();
-          return JSON.parse(content);
-        })
+    const scans = [];
+
+    for (const f of fileNames) {
+      // Skip non-JSON files, hidden files, and latest.json
+      if (!f.endsWith(".json") || f.startsWith(".") || f === "latest.json") {
+        continue;
+      }
+
+      const path = `${scansDir}/${f}`;
+
+      try {
+        // Skip broken symlinks
+        if (!fs.existsSync(path)) {
+          continue;
+        }
+
+        const content = await Bun.file(path).text();
+        const parsed = JSON.parse(content);
+
+        // Verify it has the expected structure
+        if (parsed.scan && parsed.summary) {
+          scans.push(parsed);
+        }
+      } catch (err) {
+        console.warn(`Skipping ${f}:`, err instanceof Error ? err.message : String(err));
+      }
+    }
+
+    // Sort by timestamp (ISO strings compare correctly)
+    return scans.sort((a, b) =>
+      new Date(b.scan.timestamp).getTime() -
+      new Date(a.scan.timestamp).getTime()
     );
-    return scans.sort((a, b) => b.timestamp - a.timestamp);
   } catch (e) {
     console.error("Error reading scans:", e);
     return [];
@@ -167,6 +190,39 @@ export default Bun.serve({
       });
     }
 
+    // Serve dashboard (root path)
+    if (path === "/" || path === "") {
+      const dashboardHTML = await Bun.file(
+        `${import.meta.dir}/../dashboard/index.html`
+      ).text();
+      return new Response(dashboardHTML, {
+        status: 200,
+        headers: { "Content-Type": "text/html" },
+      });
+    }
+
+    // Serve dashboard assets (frontend.tsx, etc.)
+    if (path.startsWith("/") && !path.startsWith("/api")) {
+      const dashboardPath = `${import.meta.dir}/../dashboard${path}`;
+      try {
+        const file = await Bun.file(dashboardPath).blob();
+        const contentType =
+          path.endsWith(".tsx") || path.endsWith(".ts")
+            ? "application/typescript"
+            : path.endsWith(".css")
+              ? "text/css"
+              : path.endsWith(".js")
+                ? "application/javascript"
+                : "application/octet-stream";
+        return new Response(file, {
+          status: 200,
+          headers: { "Content-Type": contentType },
+        });
+      } catch {
+        // File not found, return 404
+      }
+    }
+
     // Not found
     return new Response(JSON.stringify({ error: "Not found" }), {
       status: 404,
@@ -176,3 +232,5 @@ export default Bun.serve({
 });
 
 console.log("🚀 API server listening on http://localhost:3000");
+console.log("📊 Dashboard: http://localhost:3000");
+console.log("🔌 API: http://localhost:3000/api/");

@@ -20,7 +20,8 @@ function Dashboard() {
     const code = params.get("code");
 
     if (code && !token) {
-      fetch("http://localhost:3000/api/auth/github?code=" + code)
+      const apiBase = window.location.origin;
+      fetch(`${apiBase}/api/auth/github?code=${code}`)
         .then((res) => res.json())
         .then((data) => {
           if (data.token) {
@@ -92,6 +93,10 @@ function Dashboard() {
           )}
         </ErrorBoundary>
       </main>
+
+      <footer className="border-t border-gray-800 bg-gray-800 mt-8 py-4 text-center text-gray-400 text-sm">
+        <p>Powered by <span className="font-semibold text-white">Daytona</span> | <span className="font-semibold text-white">Bright Data</span> | <span className="font-semibold text-white">Nosana</span></p>
+      </footer>
     </div>
   );
 }

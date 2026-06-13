@@ -23,8 +23,8 @@ export class CodeProbeEngine {
       const dependencies = await this.parser.parseDependencies(repoPath);
       console.log(`   Found ${dependencies.length} dependencies`);
 
-      // Step 2: Scrape CVEs
-      console.log("🔍 Scraping CVE data...");
+      // Step 2: Scrape CVEs (Bright Data)
+      console.log("\x1b[33m[Bright Data]\x1b[0m 🔍 Scraping CVE data from NVD, Exploit-DB, Snyk...");
       const cves = await this.scraper.scrapeAll(dependencies);
       console.log(`   Found ${cves.length} CVEs`);
 
@@ -37,13 +37,14 @@ export class CodeProbeEngine {
       const criticalCves = this.matcher.filterBySeverity(matchedCves, "HIGH");
       console.log(`   Testing ${criticalCves.length} critical/high severity CVEs...`);
 
-      // Step 5: Run exploit verification in sandboxes
+      // Step 5: Run exploit verification in sandboxes (Daytona)
       const exploits = criticalCves.map((cve) => ({
         packageName: cve.package,
         version: cve.version_vulnerable,
         cveId: cve.id,
       }));
 
+      console.log("\x1b[33m[Daytona]\x1b[0m 🏗️  Spawning isolated sandboxes for exploit verification...");
       const sandboxResults = await this.sandbox.parallelRun(exploits);
 
       // Step 6: Update CVEs with sandbox results
@@ -56,8 +57,8 @@ export class CodeProbeEngine {
         }
       }
 
-      // Step 7: Generate patches
-      console.log("🔧 Generating patches...");
+      // Step 7: Generate patches (Nosana)
+      console.log("\x1b[33m[Nosana]\x1b[0m 🔧 Generating patches with LLM...");
       await this.patcher.loadPrebakedPatches();
       const patches = await this.patcher.generateAllPatches(matchedCves.filter((c) => c.exploitable));
       for (const cve of matchedCves) {
