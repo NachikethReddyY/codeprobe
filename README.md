@@ -124,6 +124,20 @@ $ codeprobe scan . --fix
    - seed.js:18 - Hardcoded Secret
 ```
 
+### Undo AI Changes
+```bash
+$ codeprobe scan . --undo
+
+↩️  Reverting AI-made changes...
+
+📦 Reverting package.json updates...
+   ✓ package.json reverted
+🔧 Reverting source code fixes...
+   ✓ All code changes reverted
+
+✓ Undo complete! Review changes with: git status
+```
+
 ### Configuration Management
 ```bash
 # Set API keys
@@ -147,6 +161,7 @@ Scans for vulnerabilities in dependencies and source code.
 | Flag | Description |
 |------|-------------|
 | `--fix` | Auto-fix vulnerabilities in code + update packages |
+| `--undo` | Revert all AI-made changes from the last scan |
 | `--json` | Output results as JSON |
 | `--verbose` | Show detailed logs |
 
@@ -276,6 +291,12 @@ codeprobe scan . --json > report.json
 ### Verbose Output
 ```bash
 codeprobe scan . --verbose
+```
+
+### Undo Previous Changes
+```bash
+# Revert all AI-made fixes from the last scan
+codeprobe scan . --undo
 ```
 
 ### Combined Options

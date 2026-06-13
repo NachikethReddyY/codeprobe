@@ -12,6 +12,7 @@ import { createScraper } from '../../engine/scraper.js';
 
 interface ScanOptions {
   fix: boolean;
+  undo: boolean;
   json: boolean;
   verbose: boolean;
 }
@@ -19,6 +20,7 @@ interface ScanOptions {
 function parseArgs(args: string[]): { repoPath: string; options: ScanOptions } {
   const options: ScanOptions = {
     fix: false,
+    undo: false,
     json: false,
     verbose: false,
   };
@@ -29,6 +31,8 @@ function parseArgs(args: string[]): { repoPath: string; options: ScanOptions } {
     const arg = args[i];
     if (arg === '--fix') {
       options.fix = true;
+    } else if (arg === '--undo') {
+      options.undo = true;
     } else if (arg === '--json') {
       options.json = true;
     } else if (arg === '--verbose') {
@@ -114,9 +118,67 @@ function displayReport(report: Report, json: boolean, durationMs: number): void 
   logger.printSeparator();
 }
 
+async function undoLastChanges(): Promise<void> {
+  console.log("↩️  Reverting AI-made changes...\n");
+
+  try {
+    // Load last scan report
+    const latestPath = path.join(PATHS.SCANS_DIR, 'latest.json');
+    if (!existsSync(latestPath)) {
+      console.log(chalk.yellow("⚠️  No previous scan found to undo."));
+      return;
+    }
+
+    const latestReport = JSON.parse(await Bun.file(latestPath).text());
+
+    // Revert package.json if it was modified
+    if (latestReport.scan.cves && latestReport.scan.cves.length > 0) {
+      console.log("📦 Reverting package.json updates...");
+      try {
+        // Use git to revert
+        const result = await Bun.$`git checkout package.json 2>&1`.nothrow();
+        if (result.exitCode === 0) {
+          console.log(chalk.green("   ✓ package.json reverted"));
+        } else {
+          console.log(chalk.yellow("   ⚠️  Could not auto-revert package.json. Run: git checkout package.json"));
+        }
+      } catch {
+        console.log(chalk.yellow("   ⚠️  Could not auto-revert package.json. Run: git checkout package.json"));
+      }
+    }
+
+    // Revert code fixes if any were made
+    if ((latestReport as any).code_vulnerabilities && (latestReport as any).code_vulnerabilities.length > 0) {
+      console.log("🔧 Reverting source code fixes...");
+      try {
+        // Use git to revert all changes
+        const result = await Bun.$`git checkout -- . 2>&1`.nothrow();
+        if (result.exitCode === 0) {
+          console.log(chalk.green("   ✓ All code changes reverted"));
+        } else {
+          console.log(chalk.yellow("   ⚠️  Could not auto-revert code. Run: git checkout -- ."));
+        }
+      } catch {
+        console.log(chalk.yellow("   ⚠️  Could not auto-revert code. Run: git checkout -- ."));
+      }
+    }
+
+    console.log(chalk.green("\n✓ Undo complete! Review changes with: git status"));
+  } catch (error) {
+    console.error(chalk.red(`✗ Undo failed: ${error instanceof Error ? error.message : String(error)}`));
+    process.exit(EXIT_CODES.FAILURE);
+  }
+}
+
 export async function scanCommand(args: string[]): Promise<void> {
   const { repoPath, options } = parseArgs(args);
   const logger = new ProgressLogger(options.verbose);
+
+  // Handle --undo flag
+  if (options.undo) {
+    await undoLastChanges();
+    return;
+  }
 
   logger.printHeader();
 
