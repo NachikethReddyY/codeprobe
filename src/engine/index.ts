@@ -4,7 +4,8 @@ import { createSandbox } from "./sandbox";
 import { createMatcher } from "./matcher";
 import { createPatcher } from "./patcher";
 import { createReportBuilder } from "./report";
-import { Report } from "../shared/types";
+import { Report, ScanCVE } from "../shared/types";
+import { findAllPackageJsons } from "../shared/file-scanner";
 
 export class CodeProbeEngine {
   private parser = createParser();
@@ -16,6 +17,66 @@ export class CodeProbeEngine {
 
   getVideoRecorder() {
     return this.sandbox.getVideoRecorder();
+  }
+
+  async scanRecursive(rootPath: string): Promise<Report> {
+    const startTime = Date.now();
+
+    try {
+      // Find all package.json files
+      console.log("🔍 Searching for package.json files...");
+      const packageJsonLocations = await findAllPackageJsons(rootPath);
+      console.log(`   Found ${packageJsonLocations.length} package.json file(s)`);
+
+      if (packageJsonLocations.length === 0) {
+        throw new Error("No package.json files found in the repository");
+      }
+
+      // Scan each location
+      const allCves: ScanCVE[] = [];
+      const allDependencies: number[] = [];
+      const scannedLocations: string[] = [];
+
+      for (const location of packageJsonLocations) {
+        console.log(`\n📂 Scanning: ${location.path}`);
+        try {
+          const report = await this.scan(location.path);
+          allCves.push(...report.scan.cves);
+          allDependencies.push(report.scan.total_dependencies);
+          scannedLocations.push(location.path);
+        } catch (error) {
+          console.warn(
+            `   ⚠️  Skipped: ${error instanceof Error ? error.message : String(error)}`
+          );
+        }
+      }
+
+      // Aggregate results
+      const riskScore = this.matcher.calculateRiskScore(allCves);
+      const scanDuration = Date.now() - startTime;
+      const totalDependencies = allDependencies.reduce((a, b) => a + b, 0);
+
+      const report = await this.reportBuilder.buildReport(
+        rootPath,
+        allCves,
+        riskScore,
+        scanDuration,
+        totalDependencies
+      );
+
+      // Add metadata about scanned locations
+      (report as any).scanned_locations = scannedLocations;
+
+      await this.reportBuilder.saveReport(report);
+
+      return report;
+    } catch (error) {
+      throw new Error(
+        `Recursive scan failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+    }
   }
 
   async scan(repoPath: string): Promise<Report> {

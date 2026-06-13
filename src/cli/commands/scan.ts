@@ -110,8 +110,8 @@ export async function scanCommand(args: string[]): Promise<void> {
   try {
     const engine = createEngine();
 
-    // Run the actual engine scan (not mocked)
-    const report = await engine.scan(repoPath);
+    // Run recursive scan to find all package.json files
+    const report = await engine.scanRecursive(repoPath);
 
     const duration = Date.now() - startTime;
 
