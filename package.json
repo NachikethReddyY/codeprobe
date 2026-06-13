@@ -10,14 +10,11 @@
   "scripts": {
     "api": "bun --hot src/api/server.ts",
     "frontend": "bunx vite src/dashboard --host localhost --port 5173",
-    "dev": "echo 'Run in separate terminals: bun run api && bun run frontend'",
-    "build": "bunx vite build src/dashboard",
-    "test": "bun test"
-    "test": "bun test",
     "dev": "bun run src/api/server.ts",
+    "build": "bun build src/dashboard/frontend.tsx --outdir dist",
+    "test": "bun test",
     "bot": "bun run src/bot/server.ts",
     "mcp": "bun run src/mcp/server.ts",
-    "build": "bun build src/dashboard/frontend.tsx --outdir dist",
     "action": "bun run src/cli/index.ts scan . --sarif"
   },
   "dependencies": {
@@ -29,11 +26,8 @@
     "chalk": "^5.3.0",
     "dayjs": "^1.11.10",
     "cli-table3": "^0.6.3",
-    "ora": "^8.0.1"
     "ora": "^8.0.1",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "tailwindcss": "^3.3.0"
+    "postgres": "^3.4.4"
   },
   "devDependencies": {
     "@types/bun": "latest",

@@ -1,4 +1,5 @@
 import { exchangeGitHubToken, validateGitHubToken } from "./auth.ts";
+import { initDB } from "../db/index.ts";
 
 const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID || "";
 const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET || "";
@@ -78,8 +79,13 @@ function requireAuth(req: Request): boolean {
   return auth.tokens.has(token);
 }
 
+const PORT = parseInt(process.env.PORT || "3000", 10);
+
+// Initialize database on startup
+await initDB();
+
 export default Bun.serve({
-  port: 3000,
+  port: PORT,
   development: process.env.NODE_ENV !== "production",
   async fetch(req) {
     const url = new URL(req.url);
@@ -231,6 +237,6 @@ export default Bun.serve({
   },
 });
 
-console.log("🚀 API server listening on http://localhost:3000");
-console.log("📊 Dashboard: http://localhost:3000");
-console.log("🔌 API: http://localhost:3000/api/");
+console.log(`🚀 API server listening on http://localhost:${PORT}`);
+console.log(`📊 Dashboard: http://localhost:${PORT}`);
+console.log(`🔌 API: http://localhost:${PORT}/api/`);
