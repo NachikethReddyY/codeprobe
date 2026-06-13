@@ -166,7 +166,7 @@ async function undoLastChanges(): Promise<void> {
     console.log(chalk.green("\n✓ Undo complete! Review changes with: git status"));
   } catch (error) {
     console.error(chalk.red(`✗ Undo failed: ${error instanceof Error ? error.message : String(error)}`));
-    process.exit(EXIT_CODES.FAILURE);
+    process.exitCode = EXIT_CODES.FAILURE;
   }
 }
 
@@ -251,9 +251,12 @@ export async function scanCommand(args: string[]): Promise<void> {
       await scanWithFixCommand([repoPath], report, logger);
     }
 
-    // Exit with appropriate code
+    // Set exit code based on vulnerabilities found
     const hasVulnerabilities = report.scan.cves.length > 0;
-    process.exit(hasVulnerabilities ? EXIT_CODES.VULNERABILITIES_FOUND : EXIT_CODES.SUCCESS);
+    const exitCode = hasVulnerabilities ? EXIT_CODES.VULNERABILITIES_FOUND : EXIT_CODES.SUCCESS;
+
+    // Exit gracefully with appropriate code
+    process.exitCode = exitCode;
   } catch (error) {
     handleError(error, logger, true);
   }
