@@ -1,0 +1,84 @@
+name: CodeProbe Security Scan
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      checks: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run CodeProbe scan
+        run: bun run src/cli/index.ts scan . --json --sarif > codeprobe-results.sarif
+        env:
+          BRIGHT_DATA_API_KEY: ${{ secrets.BRIGHT_DATA_API_KEY }}
+          DAYTONA_API_KEY: ${{ secrets.DAYTONA_API_KEY }}
+          NOSANA_API_KEY: ${{ secrets.NOSANA_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          DEBUG: "false"
+        continue-on-error: true
+
+      - name: Upload SARIF results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: codeprobe-results.sarif
+          category: CodeProbe
+
+      - name: Comment results on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const results = JSON.parse(fs.readFileSync('codeprobe-results.sarif', 'utf8'));
+
+            let comment = `## ⚡ CodeProbe Security Scan\n\n`;
+            comment += `**Status:** ✅ Complete\n`;
+            comment += `**Powered by:** Bright Data | Daytona | Nosana\n\n`;
+
+            if (results.runs && results.runs[0] && results.runs[0].results) {
+              const issues = results.runs[0].results;
+              const exploitable = issues.filter(i => i.properties?.exploitable).length;
+              const theoretical = issues.length - exploitable;
+
+              comment += `### Findings\n`;
+              comment += `- **${exploitable}** Confirmed Exploitable\n`;
+              comment += `- **${theoretical}** Theoretical Risk\n\n`;
+
+              if (issues.length > 0) {
+                comment += `### Top Issues\n`;
+                issues.slice(0, 5).forEach(issue => {
+                  const level = issue.level || 'note';
+                  const severity = issue.properties?.severity || 'UNKNOWN';
+                  comment += `- ${issue.ruleId}: ${severity} [${level}]\n`;
+                });
+              }
+            } else {
+              comment += `No vulnerabilities found! ✅\n`;
+            }
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });

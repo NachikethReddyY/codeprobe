@@ -10,7 +10,10 @@
   "scripts": {
     "test": "bun test",
     "dev": "bun run src/api/server.ts",
-    "build": "bun build src/dashboard/frontend.tsx --outdir dist"
+    "bot": "bun run src/bot/server.ts",
+    "mcp": "bun run src/mcp/server.ts",
+    "build": "bun build src/dashboard/frontend.tsx --outdir dist",
+    "action": "bun run src/cli/index.ts scan . --sarif"
   },
   "dependencies": {
     "zod": "^3.22.4",

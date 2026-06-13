@@ -91,6 +91,10 @@ function Dashboard() {
           )}
         </ErrorBoundary>
       </main>
+
+      <footer className="border-t border-gray-800 bg-gray-800 mt-8 py-4 text-center text-gray-400 text-sm">
+        <p>Powered by <span className="font-semibold text-white">Daytona</span> | <span className="font-semibold text-white">Bright Data</span> | <span className="font-semibold text-white">Nosana</span></p>
+      </footer>
     </div>
   );
 }

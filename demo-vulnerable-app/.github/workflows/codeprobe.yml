@@ -1,0 +1,32 @@
+name: CodeProbe Demo - Security Scan
+
+on: [push, pull_request]
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+
+      - name: Install CodeProbe
+        run: |
+          cd ..
+          bun install
+
+      - name: Run CodeProbe scan
+        run: |
+          cd ..
+          bun run src/cli/index.ts scan ./demo-vulnerable-app --json
+        env:
+          BRIGHT_DATA_API_KEY: ${{ secrets.BRIGHT_DATA_API_KEY }}
+          DAYTONA_API_KEY: ${{ secrets.DAYTONA_API_KEY }}
+
+      - name: Check for exploitable vulnerabilities
+        run: |
+          cd ..
+          bun run src/cli/index.ts scan ./demo-vulnerable-app --json | grep -q '"exploitable": true' && echo "✅ Vulnerability verified" || echo "⚠️ No exploitable vulnerabilities found"

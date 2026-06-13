@@ -7,6 +7,7 @@ import { ProgressLogger, createEventHandler } from '../progress.js';
 import { handleError, CodeProbeError } from '../errors.js';
 import { generateScanId, formatRiskScore, msToHuman } from '../../shared/utils.js';
 import { Report } from '../../shared/types.js';
+import { createEngine } from '../../engine/index.js';
 
 interface ScanOptions {
   fix: boolean;
@@ -103,67 +104,32 @@ export async function scanCommand(args: string[]): Promise<void> {
 
   logger.printHeader();
 
-  // Mock engine until Stage 1 is ready
-  // In production, this imports from ../engine
-  const mockReport: Report = {
-    scan: {
-      id: generateScanId(),
-      timestamp: new Date().toISOString(),
-      repo_url: repoPath,
-      cves: [
-        {
-          id: 'CVE-2023-44487',
-          package: 'http2-server',
-          version_vulnerable: '1.0.0',
-          severity: 'CRITICAL',
-          cvss: 8.5,
-          exploitable: true,
-          exploit_evidence: 'DoS attack succeeded in 0.8s',
-          patch_version: '1.0.1',
-          patch_diff: '--- a/package.json\n+++ b/package.json\n-  "http2-server": "1.0.0"\n+  "http2-server": "1.0.1"',
-        },
-      ],
-      risk_score: 8.5,
-      patches_available: 1,
-    },
-    summary: {
-      exploitable_count: 1,
-      theoretical_count: 0,
-    },
-  };
-
   const startTime = Date.now();
 
   try {
-    logger.logPhaseStart('parsing', 'Parsing dependencies');
-    await new Promise((r) => setTimeout(r, 1000)); // Mock delay
-    logger.logPhaseComplete('parsing', 'Found 1 dependency');
+    // Initialize engine
+    const engine = createEngine();
 
-    logger.logPhaseStart('scraping', 'Fetching CVE data');
-    await new Promise((r) => setTimeout(r, 1500)); // Mock delay
-    logger.logPhaseComplete('scraping', 'Found 1 CVE');
-
-    logger.logPhaseStart('verification', 'Running exploit verification');
-    await new Promise((r) => setTimeout(r, 2000)); // Mock delay
-    logger.logPhaseComplete('verification', 'CONFIRMED EXPLOITABLE');
+    // Run the actual engine scan (not mocked)
+    const report = await engine.scan(repoPath);
 
     const duration = Date.now() - startTime;
 
     // Save report
-    const scanPath = await saveReport(mockReport);
+    const scanPath = await saveReport(report);
     logger.logPhaseComplete('report', `Report saved to ${scanPath}`);
 
     // Display results
-    displayReport(mockReport, options.json, duration);
+    displayReport(report, options.json, duration);
 
     // If --fix, handle that next
     if (options.fix) {
       const { scanWithFixCommand } = await import('./scan-with-fix.js');
-      await scanWithFixCommand([repoPath], mockReport, logger);
+      await scanWithFixCommand([repoPath], report, logger);
     }
 
     // Exit with appropriate code
-    const hasVulnerabilities = mockReport.scan.cves.length > 0;
+    const hasVulnerabilities = report.scan.cves.length > 0;
     process.exit(hasVulnerabilities ? EXIT_CODES.VULNERABILITIES_FOUND : EXIT_CODES.SUCCESS);
   } catch (error) {
     handleError(error, logger, true);

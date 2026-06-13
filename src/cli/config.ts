@@ -23,9 +23,10 @@ const IV_LENGTH = 16; // 128 bits for GCM
 const TAG_LENGTH = 16; // GCM tag length
 
 function getMachineKey(): Buffer {
-  // Derive key from machine fingerprint + salt
-  // For MVP: Use hostname as fingerprint (acceptable, not perfect)
-  const fingerprint = `${process.platform}-${process.arch}-${process.pid}`;
+  // Derive key from stable machine fingerprint (hostname + platform + arch)
+  // Using process.pid breaks cross-session decryption
+  const os = require('os');
+  const fingerprint = `${os.hostname()}-${process.platform}-${process.arch}`;
   return scryptSync(fingerprint, ENCRYPTION_SALT, KEY_LENGTH);
 }
 
