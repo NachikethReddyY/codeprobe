@@ -19,7 +19,8 @@ function Dashboard() {
     const code = params.get("code");
 
     if (code && !token) {
-      fetch("http://localhost:3000/api/auth/github?code=" + code)
+      const apiBase = window.location.origin;
+      fetch(`${apiBase}/api/auth/github?code=${code}`)
         .then((res) => res.json())
         .then((data) => {
           if (data.token) {

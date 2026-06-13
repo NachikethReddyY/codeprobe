@@ -12,7 +12,8 @@ export function useScan(scanId: string | null, token: string | null) {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`http://localhost:3000/api/scans/${scanId}`, {
+        const apiBase = window.location.origin;
+        const res = await fetch(`${apiBase}/api/scans/${scanId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw new Error("Failed to fetch scan");
@@ -43,7 +44,8 @@ export function useScans(token: string | null) {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch("http://localhost:3000/api/scans", {
+        const apiBase = window.location.origin;
+        const res = await fetch(`${apiBase}/api/scans`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw new Error("Failed to fetch scans");
