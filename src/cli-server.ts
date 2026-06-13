@@ -10,48 +10,58 @@ interface ScanPayload {
 }
 
 interface ScanResponse {
-  scan: {
-    id: string;
-    timestamp: string;
-    repo_url: string;
-    repo_path: string;
-    cves: Array<{
+  success?: boolean;
+  data?: {
+    scan: {
       id: string;
-      package: string;
-      version_vulnerable: string;
-      version_fixed?: string;
-      severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
-      cvss: number;
-      description: string;
-      exploitable: boolean;
-      exploit_evidence?: string;
-      patch_diff?: string;
-      patch_version?: string;
-      verification_time_ms?: number;
-    }>;
-    risk_score: number;
-    exploitable_count: number;
-    theoretical_count: number;
-    total_dependencies: number;
-    patches_available?: number;
+      timestamp: string;
+      repo_url: string;
+      repo_path: string;
+      cves: Array<{
+        id: string;
+        package: string;
+        version_vulnerable: string;
+        version_fixed?: string;
+        severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+        cvss: number;
+        description: string;
+        exploitable: boolean;
+        exploit_evidence?: string;
+        patch_diff?: string;
+        patch_version?: string;
+        verification_time_ms?: number;
+      }>;
+      risk_score: number;
+      exploitable_count: number;
+      theoretical_count: number;
+      total_dependencies: number;
+      patches_available?: number;
+    };
+    summary: {
+      total_cves: number;
+      exploitable_count: number;
+      theoretical_count: number;
+      scan_duration_ms: number;
+    };
   };
-  summary: {
-    total_cves: number;
-    exploitable_count: number;
-    theoretical_count: number;
-    scan_duration_ms: number;
-  };
+  // Legacy format support
+  scan?: any;
+  summary?: any;
 }
 
 interface CLIOptions {
   json: boolean;
   token: string;
+  fix: boolean;
+  verbose: boolean;
 }
 
 async function parseScanArgs(args: string[]): Promise<{ path: string; options: CLIOptions }> {
   const options: CLIOptions = {
     json: false,
     token: '',
+    fix: false,
+    verbose: false,
   };
 
   let path = process.cwd();
@@ -64,6 +74,10 @@ async function parseScanArgs(args: string[]): Promise<{ path: string; options: C
     } else if (arg === '--token') {
       options.token = args[i + 1] || '';
       i++;
+    } else if (arg === '--fix') {
+      options.fix = true;
+    } else if (arg === '--verbose' || arg === '-v') {
+      options.verbose = true;
     } else if (!arg.startsWith('--')) {
       path = arg;
     }
@@ -151,6 +165,170 @@ function getRiskColor(score: number) {
   return chalk.green;
 }
 
+async function promptUser(question: string): Promise<string> {
+  const rl = require('readline').createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  return new Promise((resolve) => {
+    rl.question(question, (answer: string) => {
+      rl.close();
+      resolve(answer.toLowerCase());
+    });
+  });
+}
+
+async function reviewAndApplyPatches(response: ScanResponse, absolutePath: string, options: CLIOptions): Promise<boolean> {
+  const { scan } = response;
+
+  if (scan.cves.length === 0) {
+    console.log(chalk.green('\n✓ No vulnerabilities to fix'));
+    return true;
+  }
+
+  console.log(chalk.bold.yellow('\n📋 Review Patches\n'));
+
+  let patchCount = 0;
+  for (const cve of scan.cves) {
+    if (!cve.patch_diff) {
+      console.log(chalk.dim(`⊘ ${cve.id}: No patch available`));
+      continue;
+    }
+
+    patchCount++;
+    console.log(chalk.bold(`\n${patchCount}. ${cve.id} (${cve.package}@${cve.version_vulnerable} → ${cve.version_fixed})`));
+    console.log(`   Severity: ${colorSeverity(cve.severity)} | CVSS: ${cve.cvss}`);
+    console.log(`   ${cve.description}`);
+
+    console.log(chalk.gray('\nProposed changes:'));
+    console.log(chalk.gray(cve.patch_diff));
+
+    const answer = await promptUser(
+      chalk.cyan('\nApply this patch? (yes/no/skip/view-details): ')
+    );
+
+    if (answer === 'yes' || answer === 'y') {
+      console.log(chalk.green(`✓ Marked for patching: ${cve.id}`));
+    } else if (answer === 'skip' || answer === 's') {
+      console.log(chalk.yellow(`⊘ Skipped: ${cve.id}`));
+      cve.patch_diff = ''; // Mark as not to be applied
+    } else if (answer === 'no' || answer === 'n') {
+      console.log(chalk.yellow(`⊘ Declined: ${cve.id}`));
+      cve.patch_diff = '';
+    } else {
+      console.log(chalk.dim(cve.description));
+      console.log(chalk.dim(`More info: https://nvd.nist.gov/vuln/detail/${cve.id}`));
+    }
+  }
+
+  // Ask for final confirmation
+  console.log(chalk.bold('\n📦 Summary\n'));
+  const toApply = scan.cves.filter((c) => c.patch_diff).length;
+  console.log(`Will apply ${toApply} patch(es)`);
+
+  if (toApply === 0) {
+    console.log(chalk.yellow('No patches to apply'));
+    return false;
+  }
+
+  const final = await promptUser(chalk.cyan('\nProceed with patches? (yes/no): '));
+  return final === 'yes' || final === 'y';
+}
+
+async function applyPatchesAndCreatePR(response: ScanResponse, absolutePath: string, options: CLIOptions): Promise<void> {
+  const { scan } = response;
+
+  console.log(chalk.bold.blue('\n🔧 Applying Patches\n'));
+
+  // Create a new branch
+  const branchName = `codeprobe-security-fixes-${Date.now()}`;
+  console.log(chalk.dim(`Creating branch: ${branchName}`));
+
+  try {
+    await Bun.$`cd ${absolutePath} && git checkout -b ${branchName}`;
+  } catch (error) {
+    console.error(chalk.red(`Failed to create branch: ${error instanceof Error ? error.message : String(error)}`));
+    return;
+  }
+
+  // Apply patches to package.json
+  const patchesToApply = new Map<string, string>();
+  for (const cve of scan.cves) {
+    if (cve.patch_diff) {
+      patchesToApply.set(cve.id, cve.patch_diff);
+    }
+  }
+
+  // For demo: update package.json versions
+  if (patchesToApply.size > 0) {
+    console.log(chalk.dim('Updating package.json...'));
+    const packageJsonPath = `${absolutePath}/package.json`;
+    const packageFile = Bun.file(packageJsonPath);
+    const content = await packageFile.text();
+    const packageJson = JSON.parse(content);
+
+    for (const cve of scan.cves) {
+      if (cve.patch_diff && cve.version_fixed) {
+        packageJson.dependencies[cve.package] = `^${cve.version_fixed}`;
+        console.log(chalk.green(`✓ Updated ${cve.package} to ^${cve.version_fixed}`));
+      }
+    }
+
+    await Bun.write(packageJsonPath, JSON.stringify(packageJson, null, 2));
+  }
+
+  // Commit changes
+  console.log(chalk.dim('Committing changes...'));
+  try {
+    await Bun.$`cd ${absolutePath} && git add package.json`;
+    const commitMsg = `security: patch ${patchesToApply.size} vulnerabilit${patchesToApply.size === 1 ? 'y' : 'ies'} via codeprobe`;
+    await Bun.$`cd ${absolutePath} && git commit -m ${commitMsg}`;
+    console.log(chalk.green(`✓ Committed with message: "${commitMsg}"`));
+  } catch (error) {
+    console.error(chalk.red(`Failed to commit: ${error instanceof Error ? error.message : String(error)}`));
+    return;
+  }
+
+  // Push to remote
+  console.log(chalk.dim('Pushing to remote...'));
+  try {
+    await Bun.$`cd ${absolutePath} && git push -u origin ${branchName}`;
+    console.log(chalk.green(`✓ Pushed to origin/${branchName}`));
+  } catch (error) {
+    console.error(chalk.red(`Failed to push: ${error instanceof Error ? error.message : String(error)}`));
+    return;
+  }
+
+  // Create PR using GitHub CLI
+  console.log(chalk.dim('Creating pull request...'));
+  try {
+    const prTitle = `Security: Patch ${patchesToApply.size} vulnerabilit${patchesToApply.size === 1 ? 'y' : 'ies'}`;
+    const prBody = `## Security Patches via CodeProbe
+
+${patchesToApply.size} vulnerabilities patched:
+${scan.cves
+  .filter((c) => c.patch_diff)
+  .map((c) => `- **${c.id}**: ${c.package}@${c.version_vulnerable} → ${c.version_fixed}`)
+  .join('\n')}
+
+**Risk Score**: ${scan.risk_score.toFixed(1)}/10
+**Exploitable CVEs**: ${scan.exploitable_count}
+
+---
+✓ Powered by Bright Data | Daytona | Nosana`;
+
+    const prUrl = await Bun.$`cd ${absolutePath} && gh pr create --title ${prTitle} --body ${prBody} --web`.text();
+    console.log(chalk.green(`✓ PR created! Opening in browser...`));
+    console.log(chalk.cyan(prUrl.trim()));
+  } catch (error) {
+    console.error(chalk.yellow(`⚠ Failed to create PR automatically: ${error instanceof Error ? error.message : String(error)}`));
+    console.log(chalk.dim(`You can manually create a PR from branch ${branchName}`));
+  }
+
+  console.log(chalk.bold.green('\n✨ Done! Your security patches are ready for review.\n'));
+}
+
 async function scanCommand(args: string[]): Promise<void> {
   const { path, options } = await parseScanArgs(args);
 
@@ -219,16 +397,40 @@ async function scanCommand(args: string[]): Promise<void> {
       );
     }
 
-    const scanResponse = (await response.json()) as ScanResponse;
+    const apiResponse = (await response.json()) as ScanResponse;
 
-    // Display report
-    displayReport(scanResponse, options);
+    // Extract scan and summary from nested or flat structure
+    const scanResponse: any = {
+      scan: apiResponse.data?.scan || apiResponse.scan,
+      summary: apiResponse.data?.summary || apiResponse.summary,
+    };
 
-    // Determine exit code
-    if (scanResponse.summary.exploitable_count > 0) {
-      process.exit(EXIT_CODES.VULNERABILITIES_FOUND);
+    if (!scanResponse.scan || !scanResponse.summary) {
+      throw new Error('Invalid response format from server');
+    }
+
+    // If --fix mode, enter interactive review flow
+    if (options.fix) {
+      if (!options.json) {
+        console.log('');
+      }
+      const approved = await reviewAndApplyPatches(scanResponse, absolutePath, options);
+      if (approved) {
+        await applyPatchesAndCreatePR(scanResponse, absolutePath, options);
+      } else {
+        console.log(chalk.yellow('Patches cancelled by user'));
+        process.exit(EXIT_CODES.SUCCESS);
+      }
     } else {
-      process.exit(EXIT_CODES.SUCCESS);
+      // Normal report mode
+      displayReport(scanResponse, options);
+
+      // Determine exit code
+      if (scanResponse.summary.exploitable_count > 0) {
+        process.exit(EXIT_CODES.VULNERABILITIES_FOUND);
+      } else {
+        process.exit(EXIT_CODES.SUCCESS);
+      }
     }
   } catch (error) {
     if (options.json) {
@@ -256,14 +458,16 @@ if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
 ${chalk.bold.cyan(`⚡ ${APP_NAME} v${APP_VERSION} - CLI Scanner`)}
 
 ${chalk.bold('USAGE')}
-  codeprobe scan [path] [--json] [--token XXX]
+  codeprobe scan [path] [--json] [--fix] [--token XXX]
 
 ${chalk.bold('ARGUMENTS')}
   path              Repository path (default: current directory)
 
 ${chalk.bold('OPTIONS')}
   --json            Output results as JSON (for pipe-friendly use)
+  --fix             Interactive mode: review & apply patches, then create PR
   --token XXX       Authentication token (overrides CODEPROBE_SECRET env var)
+  -v, --verbose     Show detailed logs
   --help            Show this help message
 
 ${chalk.bold('ENVIRONMENT VARIABLES')}
@@ -271,15 +475,15 @@ ${chalk.bold('ENVIRONMENT VARIABLES')}
   CODEPROBE_SECRET  Shared secret for authentication (required)
 
 ${chalk.bold('EXIT CODES')}
-  0                 Success, no vulnerabilities
+  0                 Success, no vulnerabilities (or patches applied)
   1                 Vulnerabilities found (exploitable)
   2                 Scan error
 
 ${chalk.bold('EXAMPLES')}
-  codeprobe scan
-  codeprobe scan ./my-app
-  codeprobe scan --json > report.json
-  codeprobe scan --token my-token
+  codeprobe scan                                    # Scan and report
+  codeprobe scan ./my-app --fix                     # Interactive fix mode
+  codeprobe scan --json > report.json               # JSON output for CI
+  codeprobe scan --token my-token                   # With custom token
   SERVER_URL=http://localhost:3000 CODEPROBE_SECRET=secret codeprobe scan
 
 ${chalk.bold('DOCS')}

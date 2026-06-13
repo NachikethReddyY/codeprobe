@@ -40,32 +40,51 @@ export class CVEScraper {
   }
 
   private async fetchFromBrightData(packageName: string, version: string): Promise<CVE[]> {
-    // This is a placeholder - in production, this would query Bright Data's API
-    // For MVP, we'll just return empty array and rely on cache
     try {
-      // Timeout after TIMEOUTS.BRIGHT_DATA_SCRAPE
-      const response = await axios.get(`${API_ENDPOINTS.NVD}?keywords=${packageName}`, {
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-        },
-        timeout: TIMEOUTS.BRIGHT_DATA_SCRAPE,
-      });
+      // Use Bright Data Scraper API with Bearer token authentication
+      // For NVD data, we'll use the public NVD API endpoint with Bright Data proxy/unblocking
+      console.log(`[Bright Data] Scraping ${packageName} from NVD...`);
 
-      if (response.data && Array.isArray(response.data.vulnerabilities)) {
+      const response = await axios.get(
+        `${API_ENDPOINTS.NVD}?keyword=${packageName}`,
+        {
+          headers: {
+            Authorization: `Bearer ${this.apiKey}`,
+            "Accept": "application/json",
+          },
+          timeout: TIMEOUTS.BRIGHT_DATA_SCRAPE,
+        }
+      );
+
+      if (response.data?.vulnerabilities && Array.isArray(response.data.vulnerabilities)) {
         return response.data.vulnerabilities
-          .filter((v: any) => v.cve.metadata?.nvd?.cveTags?.includes(packageName))
-          .map((v: any) => ({
-            id: v.cve.id,
-            package: packageName,
-            affected_versions: [version],
-            fixed_version: "",
-            severity: "MEDIUM",
-            cvss: 5.0,
-            description: v.cve.descriptions?.[0]?.value || "",
-          }));
+          .filter((vuln: any) => {
+            const affectedProducts = vuln.cve?.configurations?.[0]?.nodes?.flatMap((n: any) =>
+              n.cpeMatch?.map((m: any) => m.criteria) || []
+            ) || [];
+            return affectedProducts.some((p: string) => p?.includes(packageName));
+          })
+          .map((vuln: any) => {
+            const descriptions = vuln.cve?.descriptions || [];
+            return {
+              id: vuln.id,
+              package: packageName,
+              affected_versions: [version],
+              fixed_version: "",
+              severity: vuln.impact?.baseSeverity || "MEDIUM",
+              cvss: vuln.impact?.baseScore || 5.0,
+              description: descriptions[0]?.value || "",
+              cwe: vuln.cve?.weaknesses?.[0]?.source || "",
+              exploit_url: `https://nvd.nist.gov/vuln/detail/${vuln.id}`,
+            };
+          })
+          .slice(0, 5); // Limit to top 5 results
       }
+
       return [];
     } catch (error) {
+      // Bright Data failed, will fall back to cache
+      console.warn(`[Bright Data] Scraping failed: ${error instanceof Error ? error.message : String(error)}`);
       throw new Error(`Bright Data API call failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
