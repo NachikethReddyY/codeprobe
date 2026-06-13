@@ -1,0 +1,17 @@
+node_modules
+bun_modules
+.git
+.github
+.env.local
+.env
+dist
+*.test.ts
+*.test.js
+README.md
+DEPLOY.md
+demo-vulnerable-app
+.vscode
+.idea
+coverage
+*.log
+.DS_Store

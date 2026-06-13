@@ -1,0 +1,28 @@
+name: Scheduled Dependency Scan
+
+on:
+  schedule:
+    # Run every hour
+    - cron: "0 * * * *"
+  push:
+    branches:
+      - main
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Run scraper cron
+        run: bun run src/scraper-cron.ts
+        env:
+          # Point to deployed server or skip if not available
+          CODEPROBE_SERVER_URL: ${{ secrets.CODEPROBE_SERVER_URL || 'http://localhost:3000' }}

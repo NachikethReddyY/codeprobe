@@ -1,5 +1,12 @@
 import { exchangeGitHubToken, validateGitHubToken } from "./auth.ts";
+import { createEngine } from "../engine/index.ts";
+import { writeFile, mkdir } from "fs/promises";
+import { existsSync } from "fs";
+import path from "path";
+import { PATHS, FILE_PERMISSIONS } from "../shared/constants.ts";
+import { generateScanId } from "../shared/utils.ts";
 
+const PORT = parseInt(process.env.PORT || "3000", 10);
 const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID || "";
 const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET || "";
 
@@ -57,13 +64,31 @@ async function getScans() {
 }
 
 async function getScan(scanId: string) {
-  const path = `${process.env.HOME || process.env.USERPROFILE}/.codeprobe/scans/${scanId}.json`;
+  const filePath = `${process.env.HOME || process.env.USERPROFILE}/.codeprobe/scans/${scanId}.json`;
   try {
-    const content = await Bun.file(path).text();
+    const content = await Bun.file(filePath).text();
     return JSON.parse(content);
   } catch {
     return null;
   }
+}
+
+async function saveReport(report: any): Promise<string> {
+  // Ensure directory exists
+  if (!existsSync(PATHS.SCANS_DIR)) {
+    await mkdir(PATHS.SCANS_DIR, { mode: FILE_PERMISSIONS.DIR, recursive: true });
+  }
+
+  const scanPath = path.join(PATHS.SCANS_DIR, `${report.scan.id}.json`);
+  const content = JSON.stringify(report, null, 2);
+
+  await writeFile(scanPath, content, "utf-8");
+
+  // Also update latest.json (copy, not symlink, for portability)
+  const latestPath = path.join(PATHS.SCANS_DIR, "latest.json");
+  await writeFile(latestPath, content, "utf-8");
+
+  return scanPath;
 }
 
 function requireAuth(req: Request): boolean {
@@ -79,7 +104,7 @@ function requireAuth(req: Request): boolean {
 }
 
 export default Bun.serve({
-  port: 3000,
+  port: PORT,
   development: process.env.NODE_ENV !== "production",
   async fetch(req) {
     const url = new URL(req.url);
@@ -147,6 +172,38 @@ export default Bun.serve({
         status: 200,
         headers: corsHeaders,
       });
+    }
+
+    // Trigger a new scan
+    if (path === "/api/scan" && req.method === "POST") {
+      try {
+        const body = await req.json();
+        const repoPath = body.repoPath || ".";
+
+        console.log(`[API] Triggering scan for ${repoPath}`);
+
+        // Run scan in background and return immediately
+        const engine = createEngine();
+        const report = await engine.scan(repoPath);
+        await saveReport(report);
+
+        return new Response(JSON.stringify({
+          ok: true,
+          scanId: report.scan.id,
+          message: "Scan completed successfully"
+        }), {
+          status: 200,
+          headers: corsHeaders,
+        });
+      } catch (error) {
+        console.error("[API] Scan error:", error);
+        return new Response(JSON.stringify({
+          error: error instanceof Error ? error.message : "Scan failed"
+        }), {
+          status: 500,
+          headers: corsHeaders,
+        });
+      }
     }
 
     // List scans
@@ -231,6 +288,6 @@ export default Bun.serve({
   },
 });
 
-console.log("🚀 API server listening on http://localhost:3000");
-console.log("📊 Dashboard: http://localhost:3000");
-console.log("🔌 API: http://localhost:3000/api/");
+console.log(`🚀 API server listening on http://localhost:${PORT}`);
+console.log(`📊 Dashboard: http://localhost:${PORT}`);
+console.log(`🔌 API: http://localhost:${PORT}/api/`);

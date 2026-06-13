@@ -1,0 +1,137 @@
+name: CodeProbe Security Scan
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run CodeProbe scan
+        id: scan
+        run: |
+          set +e
+          npx --yes codeprobe scan . --json --token "${{ secrets.CODEPROBE_TOKEN }}" > codeprobe-results.json 2>&1
+          SCAN_EXIT_CODE=$?
+          set -e
+
+          # Store results for later use
+          cat codeprobe-results.json
+          echo "SCAN_EXIT_CODE=$SCAN_EXIT_CODE" >> $GITHUB_OUTPUT
+        continue-on-error: true
+        env:
+          CODEPROBE_TOKEN: ${{ secrets.CODEPROBE_TOKEN }}
+
+      - name: Parse and comment results
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            let resultsContent = '';
+            try {
+              resultsContent = fs.readFileSync('codeprobe-results.json', 'utf8');
+            } catch (e) {
+              console.log('Could not read results file:', e.message);
+            }
+
+            let cveCount = 0;
+            let riskScore = 0;
+            let criticalCount = 0;
+            let highCount = 0;
+            let cveList = [];
+
+            if (resultsContent) {
+              try {
+                const results = JSON.parse(resultsContent);
+
+                if (results.report && results.report.scan) {
+                  const scan = results.report.scan;
+                  cveCount = scan.cves ? scan.cves.length : 0;
+                  riskScore = scan.risk_score ? scan.risk_score : 0;
+
+                  if (scan.cves && Array.isArray(scan.cves)) {
+                    scan.cves.forEach(cve => {
+                      if (cve.severity === 'CRITICAL') criticalCount++;
+                      if (cve.severity === 'HIGH') highCount++;
+                      cveList.push({
+                        id: cve.id,
+                        package: cve.package,
+                        severity: cve.severity,
+                        exploitable: cve.exploitable
+                      });
+                    });
+                  }
+                }
+              } catch (e) {
+                console.log('Could not parse results JSON:', e.message);
+              }
+            }
+
+            const statusEmoji = cveCount === 0 ? '✅' : '⚠️';
+            const riskLevel = riskScore > 8 ? '🔴 Critical' : riskScore > 5 ? '🟠 High' : '🟢 Low';
+
+            let comment = `## ${statusEmoji} CodeProbe Security Scan Results\n\n`;
+            comment += `**Scan Summary:**\n`;
+            comment += `- CVEs Found: **${cveCount}**\n`;
+            comment += `- Risk Score: **${riskScore.toFixed(1)}/10** ${riskLevel}\n`;
+            comment += `- Critical Issues: **${criticalCount}**\n`;
+            comment += `- High Issues: **${highCount}**\n\n`;
+
+            if (cveList.length > 0) {
+              comment += `**Top Findings:**\n`;
+              cveList.slice(0, 5).forEach(cve => {
+                const icon = cve.exploitable ? '🔓' : '⚠️';
+                comment += `${icon} **${cve.id}** (${cve.severity}) - ${cve.package}\n`;
+              });
+              if (cveList.length > 5) {
+                comment += `... and ${cveList.length - 5} more\n`;
+              }
+              comment += '\n';
+            } else {
+              comment += `**Status:** No vulnerabilities detected! ✅\n\n`;
+            }
+
+            comment += `---\n`;
+            comment += `*Powered by [CodeProbe](https://github.com/NachikethReddyY/codeprobe) - Automated Vulnerability Scanner*\n`;
+            comment += `🏆 Sponsored by: Bright Data | Daytona | Nosana\n`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+      - name: Fail if critical CVEs found
+        if: always()
+        run: |
+          if [ ! -f codeprobe-results.json ]; then
+            echo "No scan results found"
+            exit 0
+          fi
+
+          CRITICAL_COUNT=$(grep -o '"severity":"CRITICAL"' codeprobe-results.json | wc -l || echo 0)
+
+          if [ "$CRITICAL_COUNT" -gt 0 ]; then
+            echo "❌ Critical CVEs detected: $CRITICAL_COUNT"
+            exit 1
+          fi
+
+          exit 0
+        continue-on-error: false
