@@ -1,3 +1,6 @@
+import { mkdir, writeFile } from "fs/promises";
+import { join } from "path";
+
 interface ExploitVideoRecord {
   cveId: string;
   package: string;
@@ -9,29 +12,18 @@ interface ExploitVideoRecord {
 }
 
 export class VideoDBRecorder {
-  private videoDb: any = null;
-  private apiKey: string;
   private recordedVideos: Map<string, ExploitVideoRecord> = new Map();
+  private proofsDir = ".proofs";
 
   constructor() {
-    this.apiKey = process.env.VIDEODB_API_KEY || "";
-    this.initializeVideoDB();
+    this.ensureProofsDir();
   }
 
-  private initializeVideoDB(): void {
-    if (!this.apiKey) {
-      return;
-    }
-
+  private async ensureProofsDir(): Promise<void> {
     try {
-      const videodb = require("videodb");
-      const Constructor = videodb.VideoDb || videodb.Connection || videodb.connect;
-      if (typeof Constructor === "function") {
-        this.videoDb = new Constructor({ apiKey: this.apiKey });
-        console.log("[VideoDB] ✓ Initialized - exploit recordings enabled");
-      }
+      await mkdir(this.proofsDir, { recursive: true });
     } catch {
-      // VideoDB unavailable, video recording disabled
+      // Directory might already exist
     }
   }
 
@@ -42,88 +34,61 @@ export class VideoDBRecorder {
     exploitOutput: string,
     duration: number = 15
   ): Promise<ExploitVideoRecord | null> {
-    if (!this.videoDb) {
-      console.warn(`[VideoDB] Skipping recording for ${cveId} - not initialized`);
-      return null;
-    }
-
     try {
-      console.log(`[VideoDB] 🎥 Recording exploit for ${cveId}...`);
+      console.log(`[ProofRecorder] 🎥 Recording proof for ${cveId}...`);
 
-      // Create collection for this CVE
-      const collectionName = `codeprobe-${cveId.toLowerCase().replace("-", "_")}`;
-
-      // Create metadata for the video
-      const metadata = {
-        cve_id: cveId,
-        package: packageName,
-        version: version,
-        exploit_output: exploitOutput,
-        timestamp: new Date().toISOString(),
-        severity: "CRITICAL",
-        type: "rce-verification",
-      };
-
-      // In real scenario, this would capture actual sandbox screen recording
-      // For now, we create a metadata entry with exploitOutput as the video description
-      const videoUrl = await this.uploadExploitRecord(
+      const proofPath = await this.saveProof(
         cveId,
         packageName,
         version,
-        exploitOutput,
-        collectionName,
-        metadata
+        exploitOutput
       );
 
       const record: ExploitVideoRecord = {
         cveId,
         package: packageName,
         version,
-        videoUrl,
+        videoUrl: proofPath,
         duration,
         timestamp: new Date().toISOString(),
       };
 
       this.recordedVideos.set(cveId, record);
-      console.log(`[VideoDB] ✓ Recorded: ${videoUrl}`);
+      console.log(`[ProofRecorder] ✓ Saved: ${proofPath}`);
 
       return record;
     } catch (error) {
       console.warn(
-        `[VideoDB] Failed to record ${cveId}: ${error instanceof Error ? error.message : String(error)}`
+        `[ProofRecorder] Failed to save proof for ${cveId}: ${error instanceof Error ? error.message : String(error)}`
       );
       return null;
     }
   }
 
-  private async uploadExploitRecord(
+  private async saveProof(
     cveId: string,
     packageName: string,
     version: string,
-    exploitOutput: string,
-    collectionName: string,
-    metadata: any
+    exploitOutput: string
   ): Promise<string> {
-    // Create a reference URL that links to the video
-    // In production, this would actually upload screen recording to VideoDB
-    const videoId = `${cveId.toLowerCase()}_${Date.now()}`;
-    const videoUrl = `https://console.videodb.io/videos/${videoId}`;
+    await this.ensureProofsDir();
 
-    // Store metadata in cache for later retrieval
-    const cacheKey = `videodb_${cveId}`;
-    if (typeof globalThis !== "undefined") {
-      (globalThis as any)[cacheKey] = {
-        cveId,
-        packageName,
-        version,
-        exploitOutput,
-        metadata,
-        videoUrl,
-        createdAt: new Date().toISOString(),
-      };
-    }
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const filename = `${cveId}_${timestamp}.json`;
+    const filePath = join(this.proofsDir, filename);
 
-    return videoUrl;
+    const proofData = {
+      cveId,
+      package: packageName,
+      version,
+      exploitOutput,
+      savedAt: new Date().toISOString(),
+      severity: "CRITICAL",
+      type: "rce-verification",
+    };
+
+    await writeFile(filePath, JSON.stringify(proofData, null, 2));
+    return filePath;
   }
 
   getRecordedVideos(): ExploitVideoRecord[] {

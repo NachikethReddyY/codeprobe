@@ -6,7 +6,7 @@
       "name": "codeprobe",
       "dependencies": {
         "@daytona/sdk": "^0.187.0",
-        "axios": "^1.6.5",
+        "axios": "^1.16.0",
         "chalk": "^5.3.0",
         "cli-table3": "^0.6.3",
         "dayjs": "^1.11.10",
