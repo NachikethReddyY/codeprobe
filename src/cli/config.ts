@@ -10,6 +10,7 @@ interface ConfigData {
   bright_data_api_key?: string;
   daytona_api_key?: string;
   nosana_api_key?: string;
+  kimi_api_key?: string;
   [key: string]: string | undefined;
 }
 
@@ -138,7 +139,7 @@ export async function setConfig(key: string, value: string): Promise<void> {
   const config = await loadConfig();
 
   // Encrypt if it's a token/secret field (specific fields only)
-  const secretFields = ['github_token', 'bright_data_api_key', 'daytona_api_key', 'nosana_api_key'];
+  const secretFields = ['github_token', 'bright_data_api_key', 'daytona_api_key', 'nosana_api_key', 'kimi_api_key'];
   if (secretFields.includes(key.toLowerCase())) {
     config[key] = encryptToken(value);
   } else {
@@ -156,7 +157,7 @@ export async function clearConfig(key: string): Promise<void> {
   console.log(chalk.green(`✓ Config cleared: ${key}`));
 }
 
-export async function getApiKey(service: 'BRIGHT_DATA' | 'DAYTONA' | 'NOSANA'): Promise<string> {
+export async function getApiKey(service: 'BRIGHT_DATA' | 'DAYTONA' | 'NOSANA' | 'KIMI'): Promise<string> {
   const envKey = process.env[`${service}_API_KEY`];
   if (envKey) {
     return envKey;
