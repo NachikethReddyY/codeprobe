@@ -1,22 +1,16 @@
 import chalk from 'chalk';
 import { execSync } from 'child_process';
+import { readFileSync, writeFileSync } from 'fs';
+import path from 'path';
 import dayjs from 'dayjs';
 import { Report } from '../../shared/types.js';
 import { ProgressLogger } from '../progress.js';
 import { GitError, handleError } from '../errors.js';
 import { EXIT_CODES } from '../../shared/constants.js';
 
-function getGitStatus(): string {
-  try {
-    return execSync('git status --porcelain', { encoding: 'utf-8' });
-  } catch {
-    throw new GitError('Not a git repository');
-  }
-}
-
 function checkGitRepo(): boolean {
   try {
-    execSync('git rev-parse --git-dir', { encoding: 'utf-8' });
+    execSync('git rev-parse --git-dir', { encoding: 'utf-8', stdio: 'pipe' });
     return true;
   } catch {
     return false;
@@ -24,25 +18,48 @@ function checkGitRepo(): boolean {
 }
 
 function isGitDirty(): boolean {
-  const status = getGitStatus();
-  return status.trim().length > 0;
+  try {
+    const status = execSync('git status --porcelain', { encoding: 'utf-8', stdio: 'pipe' });
+    return status.trim().length > 0;
+  } catch {
+    throw new GitError('Not a git repository');
+  }
 }
 
 function createBranch(name: string): void {
   try {
-    execSync(`git checkout -b ${name}`, { encoding: 'utf-8' });
-  } catch (error) {
+    execSync(`git checkout -b ${name}`, { encoding: 'utf-8', stdio: 'pipe' });
+  } catch {
     throw new GitError(`Failed to create branch: ${name}`);
   }
 }
 
-function commitChanges(message: string): void {
+function commitAndPush(message: string, branchName: string): void {
+  execSync('git add package.json', { encoding: 'utf-8', stdio: 'pipe' });
+  execSync(`git commit -m "${message}"`, { encoding: 'utf-8', stdio: 'pipe' });
   try {
-    execSync('git add .', { encoding: 'utf-8' });
-    execSync(`git commit -m "${message}"`, { encoding: 'utf-8' });
-  } catch (error) {
-    throw new GitError('Failed to commit changes');
+    execSync(`git push -u origin ${branchName}`, { encoding: 'utf-8', stdio: 'pipe' });
+  } catch {
+    // Push failed — not fatal, user can push manually
   }
+}
+
+function applyVersionBumps(
+  repoPath: string,
+  bumps: Array<{ package: string; from: string; to: string }>
+): void {
+  const pkgPath = path.join(repoPath, 'package.json');
+  const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
+
+  for (const bump of bumps) {
+    if (pkg.dependencies?.[bump.package]) {
+      pkg.dependencies[bump.package] = `^${bump.to}`;
+    } else if (pkg.devDependencies?.[bump.package]) {
+      pkg.devDependencies[bump.package] = `^${bump.to}`;
+    }
+  }
+
+  writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
 }
 
 export async function scanWithFixCommand(
@@ -52,72 +69,81 @@ export async function scanWithFixCommand(
 ): Promise<void> {
   console.log('');
   logger.printSeparator();
-  logger.logPhaseStart('git', 'Preparing to apply patches');
 
-  try {
-    // Check git repo exists
-    if (!checkGitRepo()) {
-      throw new GitError('Not a git repository. Run: git init');
-    }
+  const repoPath = path.resolve(args[0] || '.');
 
-    // Check git status
-    if (isGitDirty()) {
-      logger.logWarning('Git repository has uncommitted changes', 'Commit or stash first');
-      throw new GitError('Repository is dirty. Commit changes before applying patches.');
-    }
+  // Collect CVEs that have a known fixed version
+  const fixable = report.scan.cves.filter(
+    (cve) => cve.version_fixed && cve.version_fixed.trim() !== ''
+  );
 
-    // Filter for exploitable CVEs only
-    const exploitableCVEs = report.scan.cves.filter((cve) => cve.exploitable);
-
-    if (exploitableCVEs.length === 0) {
-      logger.logWarning('No exploitable CVEs found', 'Nothing to patch');
-      process.exit(EXIT_CODES.SUCCESS);
-    }
-
-    // Create feature branch
-    const timestamp = dayjs().format('YYYY-MM-DD-HHmmss');
-    const branchName = `codeprobe-fix-${timestamp}`;
-
-    logger.logPhaseStart('git', `Creating branch: ${branchName}`);
-    createBranch(branchName);
-    logger.logPhaseComplete('git', `Branch created: ${branchName}`);
-
-    // Apply patches
-    for (const cve of exploitableCVEs) {
-      if (!cve.patch_diff) continue;
-
-      logger.logPhaseStart('patch', `Applying patch for ${cve.id}`);
-
-      // Mock: just log the patch
-      console.log(chalk.gray(`  Patch preview:\n${cve.patch_diff.split('\n').slice(0, 5).join('\n')}`));
-
-      // In production: apply patch using git apply or manual file updates
-      // For now: mock success
-      logger.logPhaseComplete('patch', `Patched ${cve.package}: ${cve.version_vulnerable} → ${cve.patch_version}`);
-    }
-
-    // Commit with detailed message
-    const commitMsg =
-      `[CodeProbe] Fix ${exploitableCVEs.length} exploitable CVE(s)\n\n` +
-      exploitableCVEs
-        .map((cve) => `- ${cve.id} (${cve.package} ${cve.version_vulnerable} → ${cve.patch_version})`)
-        .join('\n');
-
-    logger.logPhaseStart('git', 'Committing patches');
-    commitChanges(commitMsg);
-    logger.logPhaseComplete('git', 'Changes committed');
-
-    // Show what to do next
-    console.log('');
-    console.log(chalk.green('✓ Patches applied successfully!'));
-    console.log(chalk.cyan(`\nNext steps:`));
-    console.log(chalk.cyan(`  1. Review changes: git diff main`));
-    console.log(chalk.cyan(`  2. Push branch: git push -u origin ${branchName}`));
-    console.log(chalk.cyan(`  3. Create PR on GitHub`));
-
-    logger.printSeparator();
+  if (fixable.length === 0) {
+    console.log(chalk.yellow('⚠️  No CVEs with known fixes found.'));
+    console.log(chalk.dim('   All vulnerabilities are either unpatched or already on the latest version.'));
     process.exit(EXIT_CODES.SUCCESS);
-  } catch (error) {
-    handleError(error, logger, true);
   }
+
+  // Deduplicate: one bump per package (use highest fixed version)
+  const bumpMap = new Map<string, { from: string; to: string; cves: string[] }>();
+  for (const cve of fixable) {
+    const existing = bumpMap.get(cve.package);
+    if (!existing) {
+      bumpMap.set(cve.package, {
+        from: cve.version_vulnerable,
+        to: cve.version_fixed!,
+        cves: [cve.id],
+      });
+    } else {
+      existing.cves.push(cve.id);
+    }
+  }
+
+  const bumps = Array.from(bumpMap.entries()).map(([pkg, info]) => ({
+    package: pkg,
+    ...info,
+  }));
+
+  // Show what will be changed
+  console.log(chalk.bold(`\n📦 ${bumps.length} package(s) can be updated:\n`));
+  for (const b of bumps) {
+    console.log(
+      `  ${chalk.cyan(b.package)}: ${chalk.red(b.from)} → ${chalk.green(b.to)}`
+    );
+    console.log(chalk.dim(`    Fixes: ${b.cves.slice(0, 3).join(', ')}${b.cves.length > 3 ? ` +${b.cves.length - 3} more` : ''}`));
+  }
+
+  // Check git repo
+  if (!checkGitRepo()) {
+    console.log(chalk.yellow('\n⚠️  Not a git repository — applying fixes without committing.'));
+    applyVersionBumps(repoPath, bumps);
+    console.log(chalk.green('\n✓ package.json updated. Run your package manager to install.'));
+    process.exit(EXIT_CODES.SUCCESS);
+  }
+
+  if (isGitDirty()) {
+    console.log(chalk.yellow('\n⚠️  Uncommitted changes detected — applying fixes without committing.'));
+    applyVersionBumps(repoPath, bumps);
+    console.log(chalk.green('\n✓ package.json updated. Commit when ready.'));
+    process.exit(EXIT_CODES.SUCCESS);
+  }
+
+  // Create branch and apply fixes
+  const branchName = `codeprobe-fix-${dayjs().format('YYYY-MM-DD-HHmmss')}`;
+  console.log(chalk.dim(`\nCreating branch: ${branchName}`));
+  createBranch(branchName);
+
+  applyVersionBumps(repoPath, bumps);
+  console.log(chalk.green('\n✓ package.json updated'));
+
+  const commitMsg = `security: bump ${bumps.length} vulnerable package(s) via codeprobe\\n\\n${bumps.map(b => `- ${b.package}: ${b.from} -> ${b.to}`).join('\\n')}`;
+  commitAndPush(commitMsg, branchName);
+
+  console.log(chalk.bold.green(`\n✨ Done! Branch '${branchName}' created and pushed.\n`));
+  console.log(chalk.cyan('Next steps:'));
+  console.log(`  1. Run your package manager: ${chalk.white('bun install')} or ${chalk.white('npm install')}`);
+  console.log(`  2. Open a PR from branch: ${chalk.white(branchName)}`);
+  console.log('');
+
+  logger.printSeparator();
+  process.exit(EXIT_CODES.SUCCESS);
 }

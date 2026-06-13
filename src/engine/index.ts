@@ -61,10 +61,13 @@ export class CodeProbeEngine {
         }
       }
 
-      // Step 7: Generate patches (Nosana)
+      // Step 7: Generate patches for exploitable CVEs + any HIGH/CRITICAL with a known fix version
       console.log("\x1b[33m[Nosana]\x1b[0m 🔧 Generating patches with LLM...");
       await this.patcher.loadPrebakedPatches();
-      const patches = await this.patcher.generateAllPatches(matchedCves.filter((c) => c.exploitable));
+      const patchCandidates = matchedCves.filter((c) =>
+        c.exploitable || ((c.severity === "CRITICAL" || c.severity === "HIGH") && c.version_fixed)
+      );
+      const patches = await this.patcher.generateAllPatches(patchCandidates);
       for (const cve of matchedCves) {
         if (patches.has(cve.id)) {
           cve.patch_diff = patches.get(cve.id);
