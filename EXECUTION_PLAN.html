@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeProbe MVP — 5-Hour Execution Plan</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Sora:wght@600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #0f172a;
+            --secondary: #1e293b;
+            --accent: #10b981;
+            --accent-dark: #059669;
+            --accent-light: #d1fae5;
+            --warn: #f59e0b;
+            --critical: #ef4444;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --surface: #1e293b;
+            --surface-light: #334155;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: linear-gradient(135deg, var(--primary) 0%, #0a0f1b 100%);
+            color: var(--text-primary);
+            line-height: 1.6;
+            font-size: 1rem;
+        }
+
+        /* Typography */
+        h1 {
+            font-family: 'Sora', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 0.5rem;
+        }
+
+        h2 {
+            font-family: 'Sora', sans-serif;
+            font-size: 1.75rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: 1.5rem;
+            margin-top: 3rem;
+        }
+
+        h3 {
+            font-family: 'Sora', sans-serif;
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--accent-light);
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+        }
+
+        /* Header */
+        header {
+            border-bottom: 1px solid var(--border);
+            padding: 3rem 2rem;
+            background: linear-gradient(180deg, rgba(31, 41, 55, 0.3) 0%, rgba(31, 41, 55, 0) 100%);
+        }
+
+        header .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--accent);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: white;
+        }
+
+        .logo-text {
+            font-family: 'Sora', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        main {
+            padding: 3rem 0;
+        }
+
+        /* Sections */
+        section {
+            margin-bottom: 4rem;
+        }
+
+        /* Status Badge */
+        .status-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            letter-spacing: 0.5px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .status-ready {
+            background: var(--accent);
+            color: var(--primary);
+        }
+
+        .status-critical {
+            background: var(--critical);
+            color: white;
+        }
+
+        .status-warning {
+            background: var(--warn);
+            color: var(--primary);
+        }
+
+        /* Summary Grid */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .summary-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .summary-card:hover {
+            border-color: var(--accent);
+            background: var(--surface-light);
+            transform: translateY(-2px);
+        }
+
+        .summary-card-label {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.5rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .summary-card-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+        }
+
+        .summary-card-detail {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        /* Findings Box */
+        .findings-box {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-left: 4px solid var(--accent);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .findings-box h4 {
+            color: var(--accent);
+            margin-bottom: 1rem;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .findings-box ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .findings-box li {
+            padding-left: 1.5rem;
+            margin-bottom: 0.75rem;
+            position: relative;
+            color: var(--text-secondary);
+        }
+
+        .findings-box li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        /* Critical Issues */
+        .critical-issues {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-left: 4px solid var(--critical);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .critical-issues h4 {
+            color: var(--critical);
+            margin-bottom: 1rem;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .critical-issues ol {
+            padding-left: 1.5rem;
+        }
+
+        .critical-issues li {
+            margin-bottom: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        /* Workstreams */
+        .workstreams-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .workstream {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .workstream:hover {
+            border-color: var(--accent);
+            box-shadow: 0 8px 24px rgba(16, 185, 129, 0.1);
+        }
+
+        .workstream-header {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+            padding: 1.5rem;
+            color: white;
+        }
+
+        .workstream-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            opacity: 0.3;
+            margin-bottom: 0.5rem;
+        }
+
+        .workstream-title {
+            font-family: 'Sora', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .workstream-subtitle {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .workstream-content {
+            padding: 1.5rem;
+        }
+
+        .workstream-item {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .workstream-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .workstream-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .workstream-text {
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .time-estimate {
+            background: var(--surface-light);
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            color: var(--accent);
+            font-weight: 600;
+            margin-top: 0.75rem;
+        }
+
+        /* Task List */
+        .task-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .task-list li {
+            padding: 0.75rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .task-list li:before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+        }
+
+        /* Dependencies */
+        .dependencies {
+            background: var(--surface-light);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin-top: 1rem;
+        }
+
+        .dependencies-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+            letter-spacing: 0.5px;
+        }
+
+        .dependencies ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .dependencies li {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            padding: 0.25rem 0;
+            padding-left: 1rem;
+            position: relative;
+        }
+
+        .dependencies li:before {
+            content: "◆";
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+            font-size: 0.6rem;
+        }
+
+        /* Timeline */
+        .timeline {
+            position: relative;
+            padding: 2rem 0;
+            margin-bottom: 3rem;
+        }
+
+        .timeline-item {
+            margin-bottom: 2rem;
+            padding-left: 3rem;
+            position: relative;
+        }
+
+        .timeline-marker {
+            position: absolute;
+            left: 0;
+            width: 24px;
+            height: 24px;
+            background: var(--accent);
+            border: 3px solid var(--primary);
+            border-radius: 50%;
+            top: 0;
+        }
+
+        .timeline-time {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 0.25rem;
+        }
+
+        .timeline-content {
+            color: var(--text-secondary);
+        }
+
+        /* Decision Table */
+        .decision-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 2rem;
+        }
+
+        .decision-table th {
+            background: var(--surface-light);
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--accent);
+            border: 1px solid var(--border);
+            font-size: 0.95rem;
+        }
+
+        .decision-table td {
+            padding: 1rem;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+
+        .decision-table tr:hover {
+            background: rgba(16, 185, 129, 0.05);
+        }
+
+        /* Footer */
+        footer {
+            border-top: 1px solid var(--border);
+            padding: 2rem;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-top: 4rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.75rem;
+            }
+
+            h2 {
+                font-size: 1.3rem;
+            }
+
+            header {
+                padding: 2rem 1rem;
+            }
+
+            .container {
+                padding: 0 1rem;
+            }
+
+            main {
+                padding: 2rem 0;
+            }
+
+            .workstreams-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Print */
+        @media print {
+            body {
+                background: white;
+                color: black;
+            }
+
+            .status-badge,
+            .summary-card,
+            .workstream,
+            .findings-box,
+            .critical-issues {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="logo">
+                <div class="logo-icon">⚡</div>
+                <div class="logo-text">CodeProbe</div>
+            </div>
+            <h1>MVP Execution Plan</h1>
+            <p class="subtitle">5-Hour Hackathon Build | AgentForge SG Super AI Edition</p>
+            <span class="status-badge status-ready">PREFLIGHT: HUMAN-IN-LOOP → RESOLVED</span>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- PREFLIGHT SUMMARY -->
+            <section>
+                <h2>Preflight Review Summary</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                    Four parallel agent reviews (Eng, Design, QA, Security) flagged critical contradictions in the initial plan.
+                    All have been <strong>resolved</strong>. This document reflects the corrected MVP scope.
+                </p>
+
+                <div class="summary-grid">
+                    <div class="summary-card">
+                        <div class="summary-card-label">Eng Confidence</div>
+                        <div class="summary-card-value">85/100</div>
+                        <div class="summary-card-detail">Architecture sound after CVE fix</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-card-label">Design Confidence</div>
+                        <div class="summary-card-value">82/100</div>
+                        <div class="summary-card-detail">Scope revised; interactions defined</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-card-label">QA Confidence</div>
+                        <div class="summary-card-value">75/100</div>
+                        <div class="summary-card-detail">Smoke tests; fallbacks pre-tested</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-card-label">Security Confidence</div>
+                        <div class="summary-card-value">85/100</div>
+                        <div class="summary-card-detail">Known risks documented</div>
+                    </div>
+                </div>
+
+                <div class="critical-issues">
+                    <h4>🔧 Blockers Resolved</h4>
+                    <ol>
+                        <li><strong>Log4Shell contradiction:</strong> Java library, not Node.js. Replaced with Prototype Pollution RCE (Node.js native).</li>
+                        <li><strong>Sandbox isolation vs. exploit mechanism:</strong> No longer required. Prototype Pollution works in isolated sandbox.</li>
+                        <li><strong>Claude API fallback:</strong> Removed. Nosana-only patch generation. Cold start risk accepted.</li>
+                        <li><strong>Timeline realism:</strong> 5h timeline is aggressive; 3-person split mitigates. Prioritization: CLI + Exploit verify → Bot/Dashboard → Polish.</li>
+                        <li><strong>Test coverage:</strong> Zero automated tests for MVP. Smoke tests on demo path only. Pre-record fallback video.</li>
+                    </ol>
+                </div>
+
+                <div class="findings-box">
+                    <h4>✓ Corrected MVP Scope</h4>
+                    <ul>
+                        <li><strong>Demo CVE 1:</strong> CVE-2023-44487 (HTTP/2 Rapid Reset) — DoS, genuine Node.js vulnerability</li>
+                        <li><strong>Demo CVE 2:</strong> Prototype Pollution RCE — Code execution, Node.js ecosystem</li>
+                        <li><strong>Patch Generation:</strong> Nosana LLM only (no Claude fallback). If cold start > 60s, show "Nosana unavailable" gracefully.</li>
+                        <li><strong>GitHub Bot:</strong> Real OAuth + PR comments + auto-fix PR creation (write access required for branches).</li>
+                        <li><strong>Dashboard:</strong> Functional React (Technical + Executive views). Unlisted URL (no auth). Known limitation for MVP.</li>
+                        <li><strong>Testing:</strong> Manual rehearsal + fallback video. No automated test suite.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- PRD SNAPSHOT -->
+            <section>
+                <h2>Problem & Solution (PRD Snapshot)</h2>
+                <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 2rem; margin-bottom: 2rem;">
+                    <h3 style="color: var(--accent);">The Problem</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                        60% of data breaches in 2026 involve vulnerabilities for which a patch was already available. SAST tools like Snyk identify CVEs theoretically present in dependencies, but cannot confirm whether a specific codebase is actually exploitable. Engineers deprioritize patches based on theoretical risk, leading to breaches costing an average of <strong>$4.9M</strong> per incident.
+                    </p>
+
+                    <h3 style="color: var(--accent);">The Solution</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                        An autonomous AI agent that confirms which CVEs are actually exploitable in a target codebase by:
+                    </p>
+                    <ul class="task-list" style="margin-bottom: 1.5rem;">
+                        <li><strong>Running known PoC exploits</strong> in isolated Daytona sandboxes</li>
+                        <li><strong>Verifying success/failure</strong> (Confirmed Exploitable vs. Theoretical Risk)</li>
+                        <li><strong>Generating verified patches</strong> using Nosana LLM</li>
+                        <li><strong>Providing results</strong> via CLI, GitHub Bot, CI/CD, and MCP</li>
+                    </ul>
+
+                    <h3 style="color: var(--accent);">Business Impact</h3>
+                    <p style="color: var(--text-secondary);">
+                        Ship security fixes faster with confidence. Every confirmed exploitable CVE fixed = <strong>$4.9M breach cost averted</strong>.
+                    </p>
+                </div>
+            </section>
+
+            <!-- DEMO MOMENT -->
+            <section>
+                <h2>The "Wow Moment" (Demo Day)</h2>
+                <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px; padding: 2rem; margin-bottom: 2rem;">
+                    <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                        <strong>2-minute live demo:</strong> User runs <code style="background: var(--surface); padding: 0.25rem 0.5rem; border-radius: 4px;">codeprobe scan &lt;demo-repo&gt;</code>
+                    </p>
+                    <ol style="color: var(--text-secondary); padding-left: 1.5rem;">
+                        <li style="margin-bottom: 0.75rem;"><strong>Progress output:</strong> "Scraping CVE databases... Found 14 vulnerabilities" (Bright Data + cache)</li>
+                        <li style="margin-bottom: 0.75rem;"><strong>Sandbox spawning:</strong> "Spinning up 2 isolated sandboxes for CRITICAL CVEs..." (Daytona)</li>
+                        <li style="margin-bottom: 0.75rem;"><strong>Live exploit execution:</strong> <span style="color: var(--accent);">✓ CVE-2023-44487: CONFIRMED EXPLOITABLE (DoS in 2.1s)</span></li>
+                        <li style="margin-bottom: 0.75rem;"><strong>Patch generation:</strong> "Generating patches..." (Nosana LLM)</li>
+                        <li style="margin-bottom: 0.75rem;"><strong>Report:</strong> <span style="color: var(--accent);">Risk Score: 8.2/10 | Confirmed: 1 | Theoretical: 13 | Estimated breach cost: $4.9M</span></li>
+                        <li><strong>Dashboard:</strong> Judges see full CVE breakdown + business impact in browser</li>
+                    </ol>
+                </div>
+            </section>
+
+            <!-- WORKSTREAMS -->
+            <section>
+                <h2>3-Workstream Split (5-Hour Build)</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 2rem;">
+                    Each workstream is assigned to one person. <strong>Workstream 2 (Verify-Fix) is demo-critical and must not be split.</strong>
+                    Clock starts at 10:30 AM. Submit by 4:30 PM (6 hours with 30min buffer).
+                </p>
+
+                <div class="workstreams-grid">
+                    <!-- WORKSTREAM 1 -->
+                    <div class="workstream">
+                        <div class="workstream-header">
+                            <div class="workstream-number">1</div>
+                            <div class="workstream-title">Find Vulns</div>
+                            <div class="workstream-subtitle">Dependency analysis & CVE discovery</div>
+                        </div>
+                        <div class="workstream-content">
+                            <div class="workstream-item">
+                                <div class="workstream-label">Person</div>
+                                <div class="workstream-text">Backend engineer (Node.js parser, API design)</div>
+                            </div>
+
+                            <div class="workstream-item">
+                                <div class="workstream-label">Scope</div>
+                                <div class="workstream-text">
+                                    <ul class="task-list">
+                                        <li>Dependency parser (extract versions from package.json, package-lock.json)</li>
+                                        <li>Bright Data scraper (async CVE database scraping, NVD + Exploit-DB)</li>
+                                        <li>CVE matcher (semver matching of deps to CVEs)</li>
+                                        <li>Report builder (JSON output)</li>
+                                        <li>API: POST /api/scan, GET /api/scan/:id</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="workstream-item">
+                                <div class="workstream-label">Deliverable</div>
+                                <div class="workstream-text">
+                                    Node.js module that takes a repo path, returns JSON with CVEs.
+                                    <div class="time-estimate">1.5 hours (core) + 0.5h (testing)</div>
+                                </div>
+                            </div>
+
+                            <div class="workstream-item">
+                                <div class="workstream-label">Dependencies</div>
+                                <div class="dependencies">
+                                    <div class="dependencies-title">Requires:</div>
+                                    <ul>
+                                        <li>Bright Data API key + sandbox proof</li>
+                                        <li>Demo repo (Node.js, intentional vulns)</li>
+                                        <li>Zod for validation</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="workstream-item">
+                                <div class="workstream-label">Risks</div>
+                                <div class="workstream-text" style="color: var(--warn);">
+                                    Bright Data rate-limited. Mitigation: pre-cache CVE data for demo repo.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- WORKSTREAM 2 -->
+                    <div class="workstream">
+                        <div class="workstream-header" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
+                            <div class="workstream-number">2</div>
+                            <div class="workstream-title">Verify & Fix</div>
+                            <div class="workstream-subtitle">Exploit execution + patch generation (DEMO-CRITICAL)</div>
+                        </div>
+                        <div class="workstream-content">
+                            <div class="workstream-item">
+                                <div class="workstream-label">Person</div>
+                                <div class="workstream-text">Lead engineer (orchestration, sandbox, exploit verification)</div>
+                            </div>
+
+                            <div class="workstream-item">
+                                <div class="workstream-label">Scope</div>
+                                <div class="workstream-text">
+                                    <ul class="task-list">
+                                        <li><strong>Daytona orchestrator:</strong> Spawn isolated Node.js containers, install vulnerable packages, run PoCs</li>
+                                        <li><strong>Exploit runner:</strong> Inject PoC scripts (HTTP/2 Rapid Reset + Prototype Pollution), capture output/errors</li>
+                                        <li><strong>Verification logic:</strong> Success detection (exploit output patterns, exit codes)</li>
+                                        <li><strong>Nosana integration:</strong> Call LLM to generate patches, validate syntax</li>
+                                        <li><strong>Fallback:</strong> Nosana cold start > 60s → show "unavailable" (don't fall back to Claude)</li>
+                                        <li><strong>Retry logic:</strong> Sandbox crash → retry once, mark as "Verification Failed" on 2nd failure</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="workstream-item">
+                                <div class="workstream-label">Deliverable</div>
+                                <div class="workstream-text">
+                                    Orchestrator module + exploit runner. Takes CVE list, returns results with exploit evidence + patches.
+                                    <div class="time-estimate">2.5 hours (core exploit) + 1h (Nosana + fallback)</div>
+                                </div>
+                            </div>
+
+                            <div class="workstream-item">
+                                <div class="workstream-label">Demo CVEs (Pre-tested)</div>
+                                <div class="workstream-text">
+                                    <strong>CVE-2023-44487 (HTTP/2 Rapid Reset):</strong> Node.js http2 module, DoS via stream reset flood. PoC: send rapid RST_STREAM frames. Verify: connection drops or timeout.<br><br>
+                                    <strong>Prototype Pollution RCE:</strong> Node.js object/array prototype override. PoC: pollution via vulnerable package input, execute code via Object.defineProperty. Verify: code execution in stdout.
+                                </div>
+                            </div>
+
+                            <div class="workstream-item">
+                                <div class="workstream-label">Dependencies</div>
+                                <div class="dependencies">
+                                    <div class="dependencies-title">Requires:</div>
+                                    <ul>
+                                        <li>Daytona API key + sandbox pool tested</li>
+                                        <li>Nosana GPU container or API key</li>
+                                        <li>PoC scripts for both CVEs (pre-written)</li>
+                                        <li>Demo repo with vulnerable packages installed</li>
+                                        <li>Workstream 1 output (CVE list)</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="workstream-item">
+                                <div class="workstream-label" style="color: var(--critical);">CRITICAL</div>
+                                <div class="workstream-text" style="color: var(--critical);">
+                                    This is the "wow moment." Demo relies 100% on live exploit execution. Pre-record a 2-minute working video as insurance.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- WORKSTREAM 3 -->
+                    <div class="workstream">
+                        <div class="workstream-header">
+                            <div class="workstream-number">3</div>
+                            <div class="workstream-title">Surfaces</div>
+                            <div class="workstream-subtitle">CLI + Dashboard + GitHub Bot</div>
+                        </div>
+                        <div class="workstream-content">
+                            <div class="workstream-item">
+                                <div class="workstream-label">Person</div>
+                                <div class="workstream-text">Full-stack engineer (CLI, React dashboard, GitHub integration)</div>
+                            </div>
+
+                            <div class="workstream-item">
+                                <div class="workstream-label">Scope A: CLI</div>
+                                <div class="workstream-text">
+                                    <ul class="task-list">
+                                        <li>Bun CLI entry point: <code>codeprobe scan &lt;repo&gt;</code></li>
+                                        <li>Real-time progress output (colors, progress indicator)</li>
+                                        <li>Terminal table: CVE list with exploit status (✓ Confirmed / ✗ Theoretical)</li>
+                                        <li>Risk score + business impact messaging</li>
+                                        <li>Config file: ~/.codeprobe/config (API keys, auth token)</li>
+                                        <li>Optional: `codeprobe scan --fix` (generate patches, push to branch)</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="workstream-item">
+                                <div class="workstream-label">Scope B: Dashboard</div>
+                                <div class="workstream-text">
+                                    <ul class="task-list">
+                                        <li>React + Vite (TailwindCSS)</li>
+                                        <li><strong>Technical view:</strong> CVE table, severity, package version, PoC evidence, patch diffs</li>
+                                        <li><strong>Executive view:</strong> Risk score (0–10 gauge), $4.9M impact callout, count of confirmed/theoretical</li>
+                                        <li>View switcher (tabs or button)</li>
+                                        <li>Scan metadata: timestamp, duration, repo URL</li>
+                                        <li><strong>Known limitation:</strong> Unlisted URL, no authentication (MVP)</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="workstream-item">
+                                <div class="workstream-label">Scope C: GitHub Bot</div>
+                                <div class="workstream-text">
+                                    <ul class="task-list">
+                                        <li>GitHub App (webhook for PR events)</li>
+                                        <li>OAuth flow for CLI: `codeprobe init` (opens browser, user authorizes)</li>
+                                        <li>PR comment: scan results table + business impact</li>
+                                        <li>"Auto-fix available" button → triggers patch generation → opens new PR</li>
+                                        <li>New PR title: `[CodeProbe] Fix 2 confirmed CVEs (PR #123)`</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="workstream-item">
+                                <div class="workstream-label">Deliverable</div>
+                                <div class="workstream-text">
+                                    <ul class="task-list">
+                                        <li>CLI: Bun binary with Chalk colors + terminal output</li>
+                                        <li>Dashboard: Vite React app (served static or S3)</li>
+                                        <li>Bot: GitHub App handler (webhook receiver + PR commenter)</li>
+                                    </ul>
+                                    <div class="time-estimate">1h (CLI) + 1.5h (Dashboard) + 1h (Bot) = 3.5h</div>
+                                </div>
+                            </div>
+
+                            <div class="workstream-item">
+                                <div class="workstream-label">Dependencies</div>
+                                <div class="dependencies">
+                                    <div class="dependencies-title">Requires:</div>
+                                    <ul>
+                                        <li>Workstream 1 + 2 modules (loaded as libraries)</li>
+                                        <li>GitHub App credentials (pre-created)</li>
+                                        <li>Demo repo URL (for test PR)</li>
+                                        <li>S3 bucket or local file storage for scan results</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="workstream-item">
+                                <div class="workstream-label">Risks</div>
+                                <div class="workstream-text" style="color: var(--warn);">
+                                    <strong>Dashboard scope creep.</strong> Two full React views in 1.5 hours is tight. Prioritize: Technical view (CVE table) first, Executive (gauge + $4.9M message) second. If time runs out, Executive view becomes a static screenshot.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TIMELINE -->
+            <section>
+                <h2>5-Hour Timeline</h2>
+
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-time">10:30 – 10:45 (15m)</div>
+                        <div class="timeline-content">
+                            <strong>Kickoff & Setup:</strong> Distribute workstreams, verify API keys (Bright Data, Daytona, Nosana), test sandbox spawn, confirm demo repo is ready.
+                        </div>
+                    </div>
+
+                    <div class="timeline-item">
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-time">10:45 – 12:15 (1.5h)</div>
+                        <div class="timeline-content">
+                            <strong>Parallel build:</strong> WS1 builds parser + Bright Data, WS2 sets up Daytona + PoC injection, WS3 initializes Bun CLI project.
+                        </div>
+                    </div>
+
+                    <div class="timeline-item">
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-time">12:15 – 13:45 (1.5h)</div>
+                        <div class="timeline-content">
+                            <strong>Integration:</strong> WS1 + WS2 merge. CLI skeleton calls both. Dashboard Vite build starts. Bot OAuth flow tested offline.
+                        </div>
+                    </div>
+
+                    <div class="timeline-item">
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-time">13:45 – 14:45 (1h)</div>
+                        <div class="timeline-content">
+                            <strong>Demo path E2E:</strong> Full CLI scan on demo repo. Both CVEs execute. Results flow through dashboard. GitHub bot posts comment on test PR.
+                        </div>
+                    </div>
+
+                    <div class="timeline-item">
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-time">14:45 – 15:30 (45m)</div>
+                        <div class="timeline-content">
+                            <strong>Polish & Fallbacks:</strong> Terminal output formatting. Dashboard styling. Pre-record exploit video backup. Test Nosana cold-start fallback.
+                        </div>
+                    </div>
+
+                    <div class="timeline-item">
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-time">15:30 – 16:30 (1h)</div>
+                        <div class="timeline-content">
+                            <strong>Rehearsal & Buffer:</strong> Dry-run 2-minute demo 3x. Troubleshoot issues. Prepare backup video. Final checks.
+                        </div>
+                    </div>
+
+                    <div class="timeline-item">
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-time">16:30</div>
+                        <div class="timeline-content">
+                            <strong>SUBMIT</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="critical-issues">
+                    <h4>⏱️ Time Crunch Cuts (If Running Behind)</h4>
+                    <ol>
+                        <li><strong>Hour 4.5, 15 min behind:</strong> Skip `--fix` flag. Keep `scan` only.</li>
+                        <li><strong>Hour 4.5, 30 min behind:</strong> Skip GitHub bot auto-fix PR creation. Keep PR comment only.</li>
+                        <li><strong>Hour 4.5, 45 min behind:</strong> Skip Executive view dashboard. Show Technical view only + static $4.9M message.</li>
+                        <li><strong>Hour 5, any time:</strong> Use pre-recorded demo video.</li>
+                    </ol>
+                </div>
+            </section>
+
+            <!-- SUCCESS CRITERIA -->
+            <section>
+                <h2>Demo Success Criteria</h2>
+
+                <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 2rem; margin-bottom: 2rem;">
+                    <h3 style="color: var(--accent); margin-top: 0;">Must Have (Demo Will Not Work Without)</h3>
+                    <ul class="task-list" style="margin-bottom: 2rem;">
+                        <li>Working CLI: <code style="background: var(--surface-light); padding: 0.25rem 0.5rem; border-radius: 4px;">codeprobe scan &lt;demo-repo&gt;</code> executes end-to-end</li>
+                        <li>Live Bright Data CVE scraping (or cached fallback shown)</li>
+                        <li>Daytona sandbox spawning + exploit execution visible</li>
+                        <li>At least 1 confirmed exploitable CVE shown (✓ status)</li>
+                        <li>Patch generated + displayed (from Nosana, or example)</li>
+                        <li>Terminal output is colored, readable, <strong>impressive</strong></li>
+                    </ul>
+
+                    <h3 style="color: var(--accent);">Should Have (Strong Demo)</h3>
+                    <ul class="task-list" style="margin-bottom: 2rem;">
+                        <li>GitHub bot PR comment (real OAuth, real webhook)</li>
+                        <li>Dashboard view: both Technical + Executive visible</li>
+                        <li>Business impact messaging: "$4.9M breach cost" clearly stated</li>
+                        <li>Risk score displayed (0–10 gauge or number)</li>
+                        <li>2 confirmed exploitable CVEs (both demo CVEs)</li>
+                    </ul>
+
+                    <h3 style="color: var(--accent);">Nice to Have (Impressive Demo)</h3>
+                    <ul class="task-list">
+                        <li>Auto-fix PR creation (working branch push + PR open)</li>
+                        <li>Dashboard responsive on mobile (judges may view on phone)</li>
+                        <li>Dark mode polish (smooth transitions, accent colors)</li>
+                        <li>Real-time progress animation during scan</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- KNOWN LIMITATIONS -->
+            <section>
+                <h2>Known Limitations (Documented for Judges)</h2>
+
+                <table class="decision-table">
+                    <thead>
+                        <tr>
+                            <th>Aspect</th>
+                            <th>MVP Scope</th>
+                            <th>Why (Reason)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Node.js Only</strong></td>
+                            <td>Python, Rust, Java support cut</td>
+                            <td>5-hour MVP; N-language support is post-launch work</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Dashboard Auth</strong></td>
+                            <td>Unlisted URL (no login required)</td>
+                            <td>OAuth adds 1–2 hours; acceptable for internal demo</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Test Coverage</strong></td>
+                            <td>Manual demo only; no automated tests</td>
+                            <td>Full test suite = 20+ hours; hackathon prioritizes demo</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Patch Validation</strong></td>
+                            <td>Nosana output trusted; no re-exploit verification</td>
+                            <td>Validation loop adds 2–3 hours; accepted risk for demo</td>
+                        </tr>
+                        <tr>
+                            <td><strong>MCP Server</strong></td>
+                            <td>Skipped</td>
+                            <td>Nice-to-have; CLI + Bot demonstrate agent integration</td>
+                        </tr>
+                        <tr>
+                            <td><strong>CI/CD Action</strong></td>
+                            <td>Skipped</td>
+                            <td>Time trade-off; bot + dashboard show multi-interface capability</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Nosana Cold Start</strong></td>
+                            <td>If > 60s, show "unavailable" (no Claude fallback)</td>
+                            <td>Transparent about limitations; pure Nosana branding</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- RISKS & MITIGATIONS -->
+            <section>
+                <h2>Risks & Fallback Plans</h2>
+
+                <table class="decision-table">
+                    <thead>
+                        <tr>
+                            <th>Risk</th>
+                            <th>Likelihood</th>
+                            <th>Fallback</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Bright Data rate-limited</strong></td>
+                            <td>Medium</td>
+                            <td>Pre-cache demo repo CVE data. Show "Using cached CVE data" message.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Daytona sandbox timeout</strong></td>
+                            <td>Low</td>
+                            <td>Retry once. If still fails, mark CVE as "Verification Failed". Continue scan.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Nosana cold start > 60s</strong></td>
+                            <td>Medium</td>
+                            <td>Show "Nosana unavailable" gracefully. Display example patch instead.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>GitHub OAuth fails</strong></td>
+                            <td>Low</td>
+                            <td>Manual token input. Users provide PAT (Personal Access Token).</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Demo CVE PoC fails</strong></td>
+                            <td>Low</td>
+                            <td><strong>Pre-record 2-minute working video.</strong> Play video if live fails.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Dashboard React build fails</strong></td>
+                            <td>Low</td>
+                            <td>Show static HTML screenshot. Skip interactive demo.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Time overrun (30+ min behind)</strong></td>
+                            <td>Medium</td>
+                            <td>Use pre-recorded video + screenshots of full system. Focus demo on exploit execution.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>CodeProbe MVP Execution Plan | Generated: June 13, 2026</p>
+            <p style="font-size: 0.85rem; margin-top: 1rem;">
+                Three-person, five-hour build. Questions? Review PREFLIGHT_PLAN.md and ORCHESTRATOR_SYNTHESIS.json in repo.
+            </p>
+        </div>
+    </footer>
+</body>
+</html>

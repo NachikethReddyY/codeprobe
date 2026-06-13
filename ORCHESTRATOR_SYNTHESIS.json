@@ -1,0 +1,80 @@
+{
+  "tldr": "CodeProbe MVP concept is sound (exploit verification differentiates from Snyk), but plan contains critical contradictions (Log4Shell cannot work in Node.js), unrealistic timeline (5h vs. 12-24h needed), and zero test infrastructure—recommend human-in-loop revision before build.",
+  "overall_confidence": 75,
+  "min_confidence": 75,
+  "confidence_details": {
+    "eng": 85,
+    "design": 82,
+    "qa": 75,
+    "security": 85
+  },
+  "overall_risk": "high",
+  "has_high_risk": true,
+  "risk_details": {
+    "eng": "high",
+    "design": "high",
+    "qa": "high",
+    "security": "high"
+  },
+  "consensus": "conflict",
+  "consensus_details": {
+    "eng": "revise",
+    "design": "revise",
+    "qa": "revise",
+    "security": "revise"
+  },
+  "any_block": false,
+  "decision": "human_in_loop",
+  "decision_reason": "min_confidence (75) is below auto-approve threshold (8/10). ALL four agents flagged HIGH risk. No agent recommended 'block,' but unanimous 'revise' indicates plan requires material changes before implementation. Specific blockers: (1) Log4Shell CVE incompatible with Node.js demo repo; (2) Sandbox isolation requirement contradicts Log4Shell PoC mechanism (requires LDAP/RMI callback); (3) Timeline is 5h, realistic delivery is 12-24h; (4) Zero test coverage with critical live paths (exploit execution, fallbacks) untested; (5) Security claims about 'user code never third-party' violated by Claude API fallback.",
+  "unanimous_high_confidence": false,
+  "summary_by_agent": {
+    "eng": "Sound concept, but Log4Shell cannot be exploited in Node.js; sandbox isolation vs. exploit mechanism are mutually exclusive; timeline severely underestimated.",
+    "design": "Strong wow moment, but interaction states dangerously incomplete (error, partial, empty, loading duration undefined); dashboard scope (2 full React views) unrealistic for 1 hour; accessibility gaps (color-only, no ARIA); auth/sharing model undefined.",
+    "qa": "MVP has zero test infrastructure; five untested fallback mechanisms (Bright Data, Daytona, Nosana, patch, OAuth) are single-points-of-failure; demo-day relies entirely on pre-recorded video backup and manual rehearsal.",
+    "security": "High-risk findings: (1) Dashboard public without authentication; (2) LLM patch output lacks validation gate; (3) OAuth token encryption key derivation undefined; (4) Sandbox escape risk; (5) Bright Data scraper integrity unchecked. All recommend revise + external security review."
+  },
+  "key_findings": [
+    "CRITICAL: Log4Shell (CVE-2021-44228) is Java/log4j, not Node.js npm-compatible. Demo repo is Node.js-only. Cannot genuinely exploit Log4Shell despite being locked as primary demo CVE. Breaks 50% of 'live exploit verification' wow moment.",
+    "CRITICAL: Sandbox network isolation requirement contradicts Log4Shell PoC mechanism. Log4Shell requires outbound LDAP/RMI callback. Fully isolated sandbox cannot execute. HTTP/2 Rapid Reset (CVE-2023-44487) is only viable demo CVE.",
+    "CRITICAL: Security claim 'user code never sent to third-party APIs (Nosana runs locally)' violated by Claude API fallback. On Nosana unavailability, user code uploads to Anthropic. Dashboard shows 'Powered by Nosana' during fallback, misleading judges.",
+    "CRITICAL: Timeline 5h vs. realistic 12-24h. GitHub App OAuth (2-3h) + Daytona orchestration (2-3h) + dashboard (1-2h) exceeds 5h allocation. Cuts to scope inevitable.",
+    "HIGH: Zero automated tests. Live exploit execution (the core 'wow moment') untested. All five fallback mechanisms (Bright Data, Daytona, Nosana, patch, OAuth) untested. Demo-day failure risk is high if external APIs fail.",
+    "HIGH: Dashboard auth model undefined. Scan results accessible via URL without authentication. Any person with scan URL can view complete CVE details, patches, PoC evidence. Security vulnerability (IDOR/AuthN failures).",
+    "HIGH: Interaction states dangerously incomplete. Error state undefined (Bright Data fails?), partial-result state undefined (sandbox crashes?), empty state undefined (no vulns found?). In security tools, silence is dangerous.",
+    "HIGH: Dashboard scope unrealistic. Two full React views (Technical + Executive) with responsive design, accessibility, error handling in 1 hour. Realistic: 3-5 days for production-ready dashboard.",
+    "HIGH: Patch generation validation missing. Plan targets 80% success rate (PRD §9) with zero harness. No automated check that generated patches compile or actually fix CVE. Nosana prompt uses CodeBERT (encoder, not generative—wrong model named).",
+    "MEDIUM: GitHub bot auto-creates PRs without user approval gate. Plan says 'read access' (Req 5.11) but auto-fix requires write + branch creation. Contradiction in scope.",
+    "MEDIUM: LLM eval suite missing. Nosana/Claude patch generation requires (1) compilation check, (2) vulnerability fix verification (re-run PoC against patched code). Zero test harness.",
+    "MEDIUM: PREFLIGHT_PLAN.md says 'Skip MCP,' but codeprobe-prd.md schedules 'GitHub Bot + MCP' in 15:00-16:00 block. Binding docs contradict.",
+    "MEDIUM: Accessibility gaps. Risk gauge uses color-only encoding (red=high). CVE table has no semantic ARIA. No mobile responsive strategy. Red-green colorblindness breaks usability."
+  ],
+  "auto_approve_eligible": false,
+  "auto_approve_reason_if_eligible": null,
+  "human_in_loop_reason_if_applicable": "Min confidence 75 < 80. Has high risk: YES (all four agents flagged HIGH). Consensus: unanimous 'revise' (no unanimous_approve). Specific blockers require material revision: (1) Fix CVE/repo mismatch, (2) Revise timeline estimate or cut scope, (3) Define critical interaction states (error, partial, empty, loading %), (4) Implement dashboard auth model, (5) Add patch generation validation harness, (6) Prioritize HTTP/2 Rapid Reset over Log4Shell, (7) Resolve security claims about third-party code sending. Recommend human review of revised plan before proceeding to implementation.",
+  "agent_outputs": [
+    {
+      "agent": "Eng Reviewer",
+      "confidence": 85,
+      "risk": "high",
+      "recommendation": "revise"
+    },
+    {
+      "agent": "Design Reviewer",
+      "confidence": 82,
+      "risk": "high",
+      "recommendation": "revise"
+    },
+    {
+      "agent": "QA Reviewer",
+      "confidence": 75,
+      "risk": "high",
+      "recommendation": "revise"
+    },
+    {
+      "agent": "Security Reviewer",
+      "confidence": 85,
+      "risk": "high",
+      "recommendation": "revise"
+    }
+  ]
+}
