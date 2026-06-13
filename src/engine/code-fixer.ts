@@ -12,24 +12,50 @@ export interface CodeFix {
 export class CodeFixer {
   async fixVulnerabilities(vulnerabilities: CodeVulnerability[]): Promise<CodeFix[]> {
     const fixes: CodeFix[] = [];
+    const fileCache = new Map<string, { original: string; lines: string[] }>();
 
+    // Group vulnerabilities by file
+    const vulnsByFile = new Map<string, CodeVulnerability[]>();
     for (const vuln of vulnerabilities) {
-      const fix = await this.generateFix(vuln);
-      if (fix) {
-        fixes.push(fix);
-        await this.applyFix(fix);
+      if (!vulnsByFile.has(vuln.file)) {
+        vulnsByFile.set(vuln.file, []);
+      }
+      vulnsByFile.get(vuln.file)!.push(vuln);
+    }
+
+    // Process each file
+    for (const [filePath, fileVulns] of vulnsByFile) {
+      try {
+        const content = await readFile(filePath, "utf-8");
+        const lines = content.split("\n");
+        let modified = false;
+
+        for (const vuln of fileVulns) {
+          const fix = this.generateFixForVulnerability(vuln, lines);
+          if (fix) {
+            lines[vuln.line - 1] = fix.fixed;
+            fixes.push({ file: filePath, line: vuln.line, original: fix.original, fixed: fix.fixed, type: vuln.type });
+            modified = true;
+          }
+        }
+
+        // Write back if modified
+        if (modified) {
+          const updatedContent = lines.join("\n");
+          await writeFile(filePath, updatedContent, "utf-8");
+          console.log(`   ✓ Fixed ${fileVulns.length} issues in ${filePath}`);
+        }
+      } catch (error) {
+        console.warn(`   ⚠️  Failed to fix ${filePath}: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
 
     return fixes;
   }
 
-  private async generateFix(vuln: CodeVulnerability): Promise<CodeFix | null> {
+  private generateFixForVulnerability(vuln: CodeVulnerability, lines: string[]): { original: string; fixed: string } | null {
     try {
-      const file = await readFile(vuln.file, "utf-8");
-      const lines = file.split("\n");
       const lineIndex = vuln.line - 1;
-
       if (lineIndex < 0 || lineIndex >= lines.length) {
         return null;
       }
@@ -51,16 +77,10 @@ export class CodeFixer {
       }
 
       if (fixed !== original) {
-        return {
-          file: vuln.file,
-          line: vuln.line,
-          original,
-          fixed,
-          type: vuln.type,
-        };
+        return { original, fixed };
       }
     } catch (error) {
-      console.warn(`Failed to generate fix for ${vuln.file}:${vuln.line}`);
+      // Silent fail for individual fixes
     }
 
     return null;
@@ -71,22 +91,32 @@ export class CodeFixer {
     let fixed = line;
 
     // Replace apiKey/api_key patterns
-    fixed = fixed.replace(/api_?key\s*[:=]\s*["'][^"']*["']/i, (match) => {
-      const key = match.split("=")[0].trim();
-      return `${key} = process.env.API_KEY || "${match.split('"')[1] || match.split("'")[1] || "YOUR_KEY_HERE"}"`;
-    });
+    if (/api_?key\s*[:=]\s*["']/i.test(fixed)) {
+      const varName = fixed.match(/(\w+)\s*[:=]/)?.[1] || "apiKey";
+      fixed = fixed.replace(/api_?key\s*[:=]\s*["'][^"']*["']/i,
+        `${varName} = process.env.API_KEY || ""`);
+    }
 
     // Replace password patterns
-    fixed = fixed.replace(/password\s*[:=]\s*["'][^"']*["']/i, (match) => {
-      const key = match.split("=")[0].trim();
-      return `${key} = process.env.PASSWORD || ""`;
-    });
+    if (/password\s*[:=]\s*["']/i.test(fixed)) {
+      const varName = fixed.match(/(\w+)\s*[:=]/)?.[1] || "password";
+      fixed = fixed.replace(/password\s*[:=]\s*["'][^"']*["']/i,
+        `${varName} = process.env.PASSWORD || ""`);
+    }
 
     // Replace token patterns
-    fixed = fixed.replace(/token\s*[:=]\s*["'][^"']*["']/i, (match) => {
-      const key = match.split("=")[0].trim();
-      return `${key} = process.env.TOKEN || ""`;
-    });
+    if (/token\s*[:=]\s*["']/i.test(fixed)) {
+      const varName = fixed.match(/(\w+)\s*[:=]/)?.[1] || "token";
+      fixed = fixed.replace(/token\s*[:=]\s*["'][^"']*["']/i,
+        `${varName} = process.env.TOKEN || ""`);
+    }
+
+    // Replace secret patterns
+    if (/secret\s*[:=]\s*["']/i.test(fixed)) {
+      const varName = fixed.match(/(\w+)\s*[:=]/)?.[1] || "secret";
+      fixed = fixed.replace(/secret\s*[:=]\s*["'][^"']*["']/i,
+        `${varName} = process.env.SECRET || ""`);
+    }
 
     return fixed;
   }
@@ -134,17 +164,6 @@ export class CodeFixer {
     return line;
   }
 
-  private async applyFix(fix: CodeFix): Promise<void> {
-    try {
-      const file = await readFile(fix.file, "utf-8");
-      const lines = file.split("\n");
-      lines[fix.line - 1] = fix.fixed;
-      const updated = lines.join("\n");
-      await writeFile(fix.file, updated, "utf-8");
-    } catch (error) {
-      console.warn(`Failed to apply fix to ${fix.file}:${fix.line}`);
-    }
-  }
 }
 
 export const createCodeFixer = () => new CodeFixer();
