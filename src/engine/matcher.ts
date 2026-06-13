@@ -93,22 +93,23 @@ export class CVEMatcher {
       return 0;
     }
 
-    const severityWeight = { CRITICAL: 10, HIGH: 7, MEDIUM: 4, LOW: 1 };
-    const exploitableWeight = 2; // Confirmed exploitable counts double
+    const severityWeight: Record<string, number> = { CRITICAL: 10, HIGH: 7, MEDIUM: 4, LOW: 1 };
 
-    let totalScore = 0;
+    const highest = scanCves.reduce((max, c) => Math.max(max, severityWeight[c.severity] || 0), 0);
+    const totalWeight = scanCves.reduce((sum, c) => {
+      const w = severityWeight[c.severity] || 0;
+      return sum + w * (c.exploitable ? 2 : 1);
+    }, 0);
 
-    for (const cve of scanCves) {
-      const severityScore = severityWeight[cve.severity as keyof typeof severityWeight] || 0;
-      const isExploitable = cve.exploitable ? exploitableWeight : 1;
-      totalScore += severityScore * isExploitable;
-    }
+    const maxPossible = scanCves.reduce((sum, c) => {
+      const w = severityWeight[c.severity] || 0;
+      return sum + w * 2;
+    }, 0);
 
-    // Normalize to 0-10 scale
-    const maxScore = scanCves.length * 10 * exploitableWeight;
-    const normalizedScore = Math.min(10, (totalScore / maxScore) * 10);
+    const density = maxPossible > 0 ? totalWeight / maxPossible : 0;
+    const score = (highest / 10) * 5 + density * 5;
 
-    return parseFloat(normalizedScore.toFixed(1));
+    return parseFloat(Math.min(10, score).toFixed(1));
   }
 }
 

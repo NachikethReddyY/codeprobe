@@ -14,7 +14,6 @@ export class CodeFixer {
     const fixes: CodeFix[] = [];
     const fileCache = new Map<string, { original: string; lines: string[] }>();
 
-    // Group vulnerabilities by file
     const vulnsByFile = new Map<string, CodeVulnerability[]>();
     for (const vuln of vulnerabilities) {
       if (!vulnsByFile.has(vuln.file)) {
@@ -23,7 +22,6 @@ export class CodeFixer {
       vulnsByFile.get(vuln.file)!.push(vuln);
     }
 
-    // Process each file
     for (const [filePath, fileVulns] of vulnsByFile) {
       try {
         const content = await readFile(filePath, "utf-8");
@@ -39,7 +37,6 @@ export class CodeFixer {
           }
         }
 
-        // Write back if modified
         if (modified) {
           const updatedContent = lines.join("\n");
           await writeFile(filePath, updatedContent, "utf-8");
@@ -63,100 +60,89 @@ export class CodeFixer {
       const original = lines[lineIndex];
       let fixed = original;
 
-      // Apply type-specific fixes
       if (vuln.type === "Hardcoded Secret") {
         fixed = this.fixHardcodedSecret(original);
       } else if (vuln.type === "Command Injection") {
         fixed = this.fixCommandInjection(original);
       } else if (vuln.type === "Insecure Random") {
         fixed = this.fixInsecureRandom(original);
-      } else if (vuln.type === "SQL Injection") {
-        fixed = this.fixSQLInjection(original);
       } else if (vuln.type === "Cross-Site Scripting (XSS)") {
         fixed = this.fixXSS(original);
+      } else if (vuln.type === "Deprecated Buffer API") {
+        fixed = this.fixDeprecatedBuffer(original);
+      } else if (vuln.type === "Insecure CORS Configuration") {
+        fixed = this.fixInsecureCORS(original);
+      } else if (vuln.type === "Insecure Session Configuration") {
+        fixed = this.fixInsecureSession(original);
       }
 
       if (fixed !== original) {
         return { original, fixed };
       }
-    } catch (error) {
-      // Silent fail for individual fixes
+    } catch {
     }
 
     return null;
   }
 
   private fixHardcodedSecret(line: string): string {
-    // Replace hardcoded values with environment variable references
     let fixed = line;
 
-    // Replace apiKey/api_key patterns
     if (/api_?key\s*[:=]\s*["']/i.test(fixed)) {
-      const varName = fixed.match(/(\w+)\s*[:=]/)?.[1] || "apiKey";
-      fixed = fixed.replace(/api_?key\s*[:=]\s*["'][^"']*["']/i,
-        `${varName} = process.env.API_KEY || ""`);
+      const varName = fixed.match(/(\w+)\s*[:=]/)?.[1] || "API_KEY";
+      const envName = varName.replace(/['"]/g, '').toUpperCase();
+      fixed = fixed.replace(
+        /(\w+)\s*[:=]\s*["'][^"']*["']/,
+        `$1 = process.env.${envName} || ""`
+      );
     }
 
-    // Replace password patterns
     if (/password\s*[:=]\s*["']/i.test(fixed)) {
-      const varName = fixed.match(/(\w+)\s*[:=]/)?.[1] || "password";
-      fixed = fixed.replace(/password\s*[:=]\s*["'][^"']*["']/i,
-        `${varName} = process.env.PASSWORD || ""`);
+      const varName = fixed.match(/(\w+)\s*[:=]/)?.[1] || "PASSWORD";
+      const envName = varName.replace(/['"]/g, '').toUpperCase();
+      fixed = fixed.replace(
+        /(\w+)\s*[:=]\s*["'][^"']*["']/,
+        `$1 = process.env.${envName} || ""`
+      );
     }
 
-    // Replace token patterns
     if (/token\s*[:=]\s*["']/i.test(fixed)) {
-      const varName = fixed.match(/(\w+)\s*[:=]/)?.[1] || "token";
-      fixed = fixed.replace(/token\s*[:=]\s*["'][^"']*["']/i,
-        `${varName} = process.env.TOKEN || ""`);
+      const varName = fixed.match(/(\w+)\s*[:=]/)?.[1] || "TOKEN";
+      const envName = varName.replace(/['"]/g, '').toUpperCase();
+      fixed = fixed.replace(
+        /(\w+)\s*[:=]\s*["'][^"']*["']/,
+        `$1 = process.env.${envName} || ""`
+      );
     }
 
-    // Replace secret patterns
     if (/secret\s*[:=]\s*["']/i.test(fixed)) {
-      const varName = fixed.match(/(\w+)\s*[:=]/)?.[1] || "secret";
-      fixed = fixed.replace(/secret\s*[:=]\s*["'][^"']*["']/i,
-        `${varName} = process.env.SECRET || ""`);
+      const varName = fixed.match(/(\w+)\s*[:=]/)?.[1] || "SECRET";
+      const envName = varName.replace(/['"]/g, '').toUpperCase();
+      fixed = fixed.replace(
+        /(\w+)\s*[:=]\s*["'][^"']*["']/,
+        `$1 = process.env.${envName} || ""`
+      );
     }
 
     return fixed;
   }
 
   private fixCommandInjection(line: string): string {
-    // Add escapeShellArg wrapper for unescaped variables
-    if (line.includes("execSync") || line.includes("exec")) {
-      return line.replace(/\$\{([^}]+)\}/g, (match, varName) => {
-        if (!line.includes("escapeShellArg")) {
-          return `\${escapeShellArg(${varName})}`;
-        }
-        return match;
-      });
-    }
     return line;
   }
 
   private fixInsecureRandom(line: string): string {
-    // Replace Math.random with crypto.randomBytes
     if (line.includes("Math.random()")) {
       return line.replace(/Math\.random\(\)\.toString\(\d+\)\.slice\([^)]+\)/g, 'randomBytes(4).toString("hex")');
     }
     return line;
   }
 
-  private fixSQLInjection(line: string): string {
-    // Suggest parameterized queries (manual fix needed)
-    if (line.includes("query") && line.includes("$")) {
-      return line.replace(/query\s*\([^)]*\$\{[^}]+\}[^)]*\)/, "query('...', [param1, param2])");
-    }
-    return line;
-  }
-
   private fixXSS(line: string): string {
-    // Replace innerHTML with textContent
     if (line.includes("innerHTML")) {
       return line.replace(/\.innerHTML\s*=/, ".textContent =");
     }
 
-    // Replace dangerouslySetInnerHTML with safe alternative
     if (line.includes("dangerouslySetInnerHTML")) {
       return line.replace(/dangerouslySetInnerHTML=\{[^}]+\}/g, "children");
     }
@@ -164,6 +150,31 @@ export class CodeFixer {
     return line;
   }
 
+  private fixDeprecatedBuffer(line: string): string {
+    if (/new\s+Buffer\s*\(/.test(line)) {
+      return line.replace(/new\s+Buffer\s*\(/, "Buffer.from(");
+    }
+    return line;
+  }
+
+  private fixInsecureCORS(line: string): string {
+    let fixed = line;
+    if (line.includes("*") && (line.includes("Access-Control-Allow-Origin") || line.includes("origin"))) {
+      fixed = fixed.replace(/['"]\*['"]/, "process.env.ALLOWED_ORIGIN || 'http://localhost:3000'");
+    }
+    return fixed;
+  }
+
+  private fixInsecureSession(line: string): string {
+    let fixed = line;
+    if (line.includes("saveUninitialized: true")) {
+      fixed = fixed.replace(/saveUninitialized:\s*true/, "saveUninitialized: false");
+    }
+    if (line.includes("resave: true")) {
+      fixed = fixed.replace(/resave:\s*true/, "resave: false");
+    }
+    return fixed;
+  }
 }
 
 export const createCodeFixer = () => new CodeFixer();
