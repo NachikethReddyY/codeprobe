@@ -1,0 +1,32 @@
+{
+  "id": "scan-demo-001",
+  "repo": "https://github.com/demo/vulnerable-app",
+  "riskScore": 8.5,
+  "timestamp": 1718281200,
+  "duration": 45,
+  "supplyChainWarnings": 0,
+  "cves": [
+    {
+      "id": "CVE-2023-44487",
+      "package": "http2-server",
+      "severity": "CRITICAL",
+      "status": "✅ Confirmed Exploitable",
+      "patch": "v1.0.1",
+      "description": "HTTP/2 server implementation vulnerable to rapid reset attacks. Attacker can trigger remote code execution.",
+      "affectedVersions": "1.0.0 - 1.0.0",
+      "poc": "$ codeprobe poc CVE-2023-44487\n[*] Setting up sandbox...\n[+] Server started on :8000\n[*] Sending exploit payload...\n[+] RCE confirmed: /bin/sh opened\n$ whoami\nroot\n$ exit\n[+] Patch required: Upgrade to http2-server >= 1.0.1",
+      "diff": "--- a/package.json\n+++ b/package.json\n@@ -5,1 +5,1 @@\n-  \"http2-server\": \"1.0.0\"\n+  \"http2-server\": \"1.0.1\""
+    },
+    {
+      "id": "CVE-2023-12345",
+      "package": "lodash",
+      "severity": "HIGH",
+      "status": "⚠️ Theoretical Risk",
+      "patch": "N/A",
+      "description": "Prototype pollution in lodash utility functions. Could allow arbitrary code execution.",
+      "affectedVersions": "4.17.0 - 4.17.20",
+      "poc": "Manual code review identified unsafe merge patterns.",
+      "diff": "--- a/src/utils.js\n+++ b/src/utils.js\n@@ -12,3 +12,5 @@\n function merge(obj, src) {\n+  if (!src) return obj;\n+  if (typeof src !== 'object') return obj;\n   return Object.assign(obj, src);"
+    }
+  ]
+}
