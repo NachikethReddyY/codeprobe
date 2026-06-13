@@ -1,5 +1,5 @@
 {
-  "name": "@nrdevs/codeprobe",
+  "name": "codeprobe-scanner",
   "version": "1.0.0",
   "description": "Automated vulnerability scanner with exploit verification and video evidence",
   "type": "module",
