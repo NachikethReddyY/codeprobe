@@ -6,7 +6,14 @@
       "Bash(git add *)",
       "Bash(git commit -m 'docs: Add 3-stage MVP build playbook with critical fixes *)",
       "Bash(npm view *)",
-      "Bash(git commit -m 'fix: Replace HTTP/2 with ejs CVE-2022-29078 \\(Template Injection RCE\\) *)"
+      "Bash(git commit -m 'fix: Replace HTTP/2 with ejs CVE-2022-29078 \\(Template Injection RCE\\) *)",
+      "Bash(bun install *)",
+      "Bash(curl -fsSL https://bun.sh/install)",
+      "Bash(bash)",
+      "Bash(~/.bun/bin/bun install *)",
+      "Bash(~/.bun/bin/bun test *)",
+      "Bash(~/.bun/bin/bun *)",
+      "Bash(git commit -m 'feat: Stage 1 - Core engine complete \\(dependency parser, CVE scraper, sandbox, reporter\\) *)"
     ]
   }
 }
