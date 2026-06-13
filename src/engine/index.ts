@@ -132,7 +132,7 @@ export class CodeProbeEngine {
       }
 
       // Step 7: Generate patches for exploitable CVEs + any HIGH/CRITICAL with a known fix version
-      console.log("\x1b[33m[Nosana]\x1b[0m 🔧 Generating patches with LLM...");
+      console.log("\x1b[33m[Kimi]\x1b[0m 🔧 Generating patches with Kimi LLM...");
       await this.patcher.loadPrebakedPatches();
       const patchCandidates = matchedCves.filter((c) =>
         c.exploitable || ((c.severity === "CRITICAL" || c.severity === "HIGH") && c.version_fixed)

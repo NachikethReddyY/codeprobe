@@ -67,38 +67,35 @@ export class PatchGenerator {
   async generatePatch(cve: ScanCVE): Promise<string | null> {
     await this.resolveKeys();
 
+    // First, check for prebaked patches (highest priority)
     const prebakedPatch = this.patches.get(cve.id);
     if (prebakedPatch) {
       cve.patch_diff = prebakedPatch.diff;
       return prebakedPatch.diff;
     }
 
-    // Try Kimi LLM for patch generation
+    // Use Kimi LLM for patch generation (primary method)
     if (this.kimiApiKey) {
       try {
-        console.log(`[Kimi] Generating patch for ${cve.id}...`);
+        console.log(`[Kimi] 🔧 Generating patch for ${cve.id}...`);
         const patch = await this.generatePatchWithKimi(cve);
         if (patch) {
           cve.patch_diff = patch;
+          console.log(`[Kimi] ✓ Patch generated for ${cve.id}`);
           return patch;
         }
       } catch (error) {
-        console.warn(`[Kimi] Failed to generate patch: ${error instanceof Error ? error.message : String(error)}`);
+        console.warn(
+          `[Kimi] ⚠️  Failed to generate patch for ${cve.id}: ${
+            error instanceof Error ? error.message : String(error)
+          }`
+        );
       }
-    }
-
-    // Try Nosana LLM if Kimi failed
-    if (this.nosanaApiKey) {
-      try {
-        console.log(`[Kimi] Generating patch for ${cve.id}...`);
-        const patch = await this.generatePatchWithKimi(cve);
-        if (patch) {
-          cve.patch_diff = patch;
-          return patch;
-        }
-      } catch (error) {
-        console.warn(`[Kimi] Failed to generate patch: ${error instanceof Error ? error.message : String(error)}`);
-      }
+    } else {
+      console.warn(
+        `[Kimi] ⚠️  No Kimi API key configured. Set KIMI_API_KEY or run:\n` +
+        `       codeprobe config set kimi_api_key <your-key>`
+      );
     }
 
     return null;
