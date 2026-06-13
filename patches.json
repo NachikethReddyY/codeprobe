@@ -1,0 +1,12 @@
+[
+  {
+    "cve_id": "CVE-2022-29078",
+    "package": "ejs",
+    "from_version": "3.1.0",
+    "to_version": "3.1.7",
+    "description": "Fixes template injection RCE vulnerability by sanitizing template inputs",
+    "diff": "--- a/package.json\n+++ b/package.json\n@@ -5,1 +5,1 @@\n-  \"ejs\": \"3.1.6\"\n+  \"ejs\": \"3.1.7\"\n--- a/package-lock.json\n+++ b/package-lock.json\n@@ -10,1 +10,1 @@\n-      \"version\": \"3.1.6\",\n+      \"version\": \"3.1.7\",",
+    "severity": "CRITICAL",
+    "cvss": 9.8
+  }
+]
