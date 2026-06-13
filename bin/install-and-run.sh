@@ -88,4 +88,4 @@ if [ ! -f "$PACKAGE_ROOT/package.json" ]; then
 fi
 
 # Run CodeProbe CLI
-"$BUN_BIN" run "$PACKAGE_ROOT/src/cli/index.ts" scan "$@"
+"$BUN_BIN" run "$PACKAGE_ROOT/src/cli-server.ts" "$@"
