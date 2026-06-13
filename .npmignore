@@ -1,0 +1,37 @@
+# Environment files - never publish
+.env
+.env.*
+!.env.example
+
+# Development tooling
+.claude/
+.github/
+.dockerignore
+Dockerfile
+tsconfig.json
+tailwind.config.js
+bun.lock
+cve-cache.json
+patches.json
+
+# Documentation
+*.md
+*.html
+*.json
+!package.json
+
+# Test files
+src/test/
+
+# Scripts not needed at runtime
+verify-*.ts
+verify-*.sh
+demo.sh
+serve-dashboard.ts
+/index.ts
+
+# Other
+node_modules/
+archived/
+demo-vulnerable-app/
+public/

@@ -8,6 +8,7 @@ import { handleError, CodeProbeError } from '../errors.js';
 import { generateScanId, formatRiskScore, msToHuman } from '../../shared/utils.js';
 import { Report } from '../../shared/types.js';
 import { createEngine } from '../../engine/index.js';
+import { createScraper } from '../../engine/scraper.js';
 
 interface ScanOptions {
   fix: boolean;
@@ -107,7 +108,6 @@ export async function scanCommand(args: string[]): Promise<void> {
   const startTime = Date.now();
 
   try {
-    // Initialize engine
     const engine = createEngine();
 
     // Run the actual engine scan (not mocked)
@@ -121,6 +121,31 @@ export async function scanCommand(args: string[]): Promise<void> {
 
     // Display results
     displayReport(report, options.json, duration);
+
+    // Show recent npm threats from GitHub Advisory Database
+    if (!options.json) {
+      try {
+        const scraper = createScraper();
+        const threats = await scraper.fetchRecentThreats();
+        if (threats.length > 0) {
+          console.log(chalk.bold('\n🌐 Recent npm Security Threats (GitHub Advisory Database):'));
+          console.log(chalk.gray('─'.repeat(60)));
+          for (const t of threats.slice(0, 5)) {
+            const sev = t.severity === 'CRITICAL' ? chalk.red(t.severity)
+              : t.severity === 'HIGH' ? chalk.yellow(t.severity)
+              : chalk.blue(t.severity);
+            console.log(`  ${sev} ${chalk.bold(t.title)}`);
+            if (t.packages.length > 0) {
+              console.log(chalk.dim(`    Packages: ${t.packages.join(', ')}`));
+            }
+            console.log(chalk.dim(`    ${t.published?.slice(0, 10)} · ${t.url}`));
+          }
+          console.log('');
+        }
+      } catch {
+        // Non-fatal — threats feed is best-effort
+      }
+    }
 
     // If --fix, handle that next
     if (options.fix) {

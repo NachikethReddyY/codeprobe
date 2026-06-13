@@ -2,34 +2,36 @@ import { Daytona } from "@daytona/sdk";
 import { SandboxResult } from "../shared/types";
 import { TIMEOUTS, RETRY_CONFIG, DEMO_CVE } from "../shared/constants";
 import { createVideoDBRecorder } from "../integrations/videodb";
+import { getConfig } from "../cli/config.js";
 
 export class SandboxOrchestrator {
-  private apiKey: string;
+  private apiKey: string = "";
   private daytonaClient: Daytona | null = null;
   private useDaytona: boolean = false;
   private videoRecorder = createVideoDBRecorder();
 
-  constructor() {
-    this.apiKey = process.env.DAYTONA_API_KEY || "";
+  private async resolveApiKey(): Promise<string> {
+    if (process.env.DAYTONA_API_KEY) return process.env.DAYTONA_API_KEY;
+    const stored = await getConfig("daytona_api_key");
+    return typeof stored === "string" ? stored : "";
+  }
 
-    // Initialize Daytona if API key is available
+  async initialize(): Promise<void> {
+    this.apiKey = await this.resolveApiKey();
     if (this.apiKey && this.apiKey.startsWith("dtn_")) {
       try {
         this.daytonaClient = new Daytona({ apiKey: this.apiKey });
         this.useDaytona = true;
         console.log("[Daytona] ✓ Real sandbox enabled");
-      } catch (error) {
-        console.warn("[Daytona] ⚠️ Failed to initialize, will use local simulation:",
-          error instanceof Error ? error.message : String(error));
+      } catch {
         this.useDaytona = false;
       }
-    } else {
-      console.log("[Daytona] Using simulated sandbox (no API key provided)");
     }
   }
 
   async runExploit(packageName: string, version: string, cveId: string): Promise<SandboxResult> {
-    // Only support ejs RCE for now
+    if (!this.apiKey) await this.initialize();
+
     if (packageName === DEMO_CVE.package && cveId === DEMO_CVE.id) {
       if (this.useDaytona && this.daytonaClient) {
         return await this.runEjsWithDaytona(version);

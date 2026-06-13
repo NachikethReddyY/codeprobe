@@ -1,6 +1,7 @@
 import { ScanCVE } from "../shared/types";
 import { PATHS, DEMO_CVE } from "../shared/constants";
 import axios from "axios";
+import { getConfig } from "../cli/config.js";
 
 interface PatchData {
   cve_id: string;
@@ -13,12 +14,14 @@ interface PatchData {
 
 export class PatchGenerator {
   private patches: Map<string, PatchData> = new Map();
-  private kimiApiKey: string;
-  private nosanaApiKey: string;
+  private kimiApiKey: string = "";
+  private nosanaApiKey: string = "";
 
-  constructor() {
-    this.kimiApiKey = process.env.KIMI_API_KEY || "";
-    this.nosanaApiKey = process.env.NOSANA_API_KEY || "";
+  private async resolveKeys(): Promise<void> {
+    this.kimiApiKey = process.env.KIMI_API_KEY
+      || (typeof await getConfig("kimi_api_key") === "string" ? await getConfig("kimi_api_key") as string : "");
+    this.nosanaApiKey = process.env.NOSANA_API_KEY
+      || (typeof await getConfig("nosana_api_key") === "string" ? await getConfig("nosana_api_key") as string : "");
   }
 
   async loadPrebakedPatches(): Promise<void> {
@@ -62,7 +65,8 @@ export class PatchGenerator {
   }
 
   async generatePatch(cve: ScanCVE): Promise<string | null> {
-    // Try to get prebaked patch first
+    await this.resolveKeys();
+
     const prebakedPatch = this.patches.get(cve.id);
     if (prebakedPatch) {
       cve.patch_diff = prebakedPatch.diff;

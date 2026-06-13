@@ -1,5 +1,3 @@
-import { VideoDb } from "videodb";
-
 interface ExploitVideoRecord {
   cveId: string;
   package: string;
@@ -11,7 +9,7 @@ interface ExploitVideoRecord {
 }
 
 export class VideoDBRecorder {
-  private videoDb: VideoDb | null = null;
+  private videoDb: any = null;
   private apiKey: string;
   private recordedVideos: Map<string, ExploitVideoRecord> = new Map();
 
@@ -22,15 +20,18 @@ export class VideoDBRecorder {
 
   private initializeVideoDB(): void {
     if (!this.apiKey) {
-      console.warn("[VideoDB] API key not found, video recording disabled");
       return;
     }
 
     try {
-      this.videoDb = new VideoDb({ apiKey: this.apiKey });
-      console.log("[VideoDB] ✓ Initialized - exploit recordings enabled");
-    } catch (error) {
-      console.warn("[VideoDB] Failed to initialize:", error instanceof Error ? error.message : String(error));
+      const videodb = require("videodb");
+      const Constructor = videodb.VideoDb || videodb.Connection || videodb.connect;
+      if (typeof Constructor === "function") {
+        this.videoDb = new Constructor({ apiKey: this.apiKey });
+        console.log("[VideoDB] ✓ Initialized - exploit recordings enabled");
+      }
+    } catch {
+      // VideoDB unavailable, video recording disabled
     }
   }
 

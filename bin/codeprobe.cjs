@@ -40,7 +40,7 @@ if (!bunCmd) {
 
 // Run the CLI
 const args = process.argv.slice(2);
-const cmd = `${bunCmd} run ${path.join(packageRoot, 'src/cli-server.ts')} ${args.join(' ')}`;
+const cmd = `${bunCmd} run ${path.join(packageRoot, 'src/cli/index.ts')} ${args.join(' ')}`;
 
 try {
   execSync(cmd, {

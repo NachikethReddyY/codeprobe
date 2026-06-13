@@ -27,8 +27,8 @@ export class CodeProbeEngine {
       const dependencies = await this.parser.parseDependencies(repoPath);
       console.log(`   Found ${dependencies.length} dependencies`);
 
-      // Step 2: Scrape CVEs (Bright Data)
-      console.log("\x1b[33m[Bright Data]\x1b[0m 🔍 Scraping CVE data from NVD, Exploit-DB, Snyk...");
+      // Step 2: Scrape CVEs from OSV.dev + npm audit
+      console.log("🔍 Checking OSV.dev + npm advisory database...");
       const cves = await this.scraper.scrapeAll(dependencies);
       console.log(`   Found ${cves.length} CVEs`);
 
