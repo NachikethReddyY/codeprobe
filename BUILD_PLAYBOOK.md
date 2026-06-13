@@ -28,7 +28,7 @@ Dashboard (React) + GitHub OAuth
 Judges See: Exploit confirmed + Business impact ($4.9M risk)
 ```
 
-**The "Wow Moment":** Live sandbox runs HTTP/2 DoS exploit, succeeds, shows as "CONFIRMED EXPLOITABLE" in dashboard. Judges understand: "This isn't theoretical — we verified the exploit works."
+**The "Wow Moment":** Live sandbox runs ejs template injection RCE exploit, achieves code execution, shows as "CONFIRMED EXPLOITABLE" in dashboard. Judges understand: "This isn't theoretical — we verified the exploit works."
 
 ---
 
@@ -45,10 +45,10 @@ Judges See: Exploit confirmed + Business impact ($4.9M risk)
 - JSON report builder
 - Integration test (full pipeline working)
 
-**Success Metric:** `bun test` passes. Engine runs end-to-end on demo repo, produces valid JSON report with "CONFIRMED EXPLOITABLE" for HTTP/2 CVE.
+**Success Metric:** `bun test` passes. Engine runs end-to-end on demo repo, produces valid JSON report with "CONFIRMED EXPLOITABLE" for ejs RCE CVE.
 
 **Key Decisions Locked:**
-- Demo CVE: **HTTP/2 Rapid Reset (CVE-2023-44487)** only (Log4Shell removed — Java incompatible with Node.js demo repo)
+- Demo CVE: **ejs CVE-2022-29078 (Template Injection RCE)** — Real npm package, vulnerable 3.1.0–3.1.6, fixed 3.1.7+, local PoC
 - Patches: Pre-baked + LLM fallback with validation
 - Fallbacks: Bright Data fails → cached JSON. Daytona crashes → retry once.
 
@@ -259,7 +259,7 @@ Ready for hackathon demo!
 
 **Hard constraints:**
 - CLI must work (non-negotiable)
-- Exploit verification must work (the whole point)
+- ejs RCE exploit verification must work (the whole point — RCE is the "wow moment")
 - Business impact message must be clear (judges need to understand "$4.9M risk")
 
 **First cuts if time is tight:**
@@ -307,7 +307,7 @@ Ready for hackathon demo!
 - Skip fallback video (network fails, APIs timeout — always have backup)
 
 ✅ **Do:**
-- Lock demo CVE early (HTTP/2, no Log4Shell)
+- Lock demo CVE early (ejs RCE, not Log4Shell or HTTP/2)
 - Test end-to-end on demo repo before final demo
 - Pre-record fallback video (insurance policy)
 - Keep CLI + exploit verification as core (everything else is bonus)

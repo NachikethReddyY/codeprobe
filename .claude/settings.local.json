@@ -4,7 +4,9 @@
       "Bash(git init *)",
       "Bash(bun init *)",
       "Bash(git add *)",
-      "Bash(git commit -m 'docs: Add 3-stage MVP build playbook with critical fixes *)"
+      "Bash(git commit -m 'docs: Add 3-stage MVP build playbook with critical fixes *)",
+      "Bash(npm view *)",
+      "Bash(git commit -m 'fix: Replace HTTP/2 with ejs CVE-2022-29078 \\(Template Injection RCE\\) *)"
     ]
   }
 }

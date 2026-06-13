@@ -17,7 +17,7 @@ Build the foundational engine: dependency parser, CVE scraper, sandbox integrati
 
 | What | Decision | Why |
 |------|----------|-----|
-| Demo CVE | HTTP/2 Rapid Reset (CVE-2023-44487) ONLY | Log4Shell is Java/log4j, incompatible with Node.js demo repo + requires outbound callbacks (sandbox isolation blocks this). HTTP/2 is DoS, works in isolation. |
+| Demo CVE | ejs CVE-2022-29078 (Template Injection RCE) | Real npm package with vulnerable (3.1.0–3.1.6) and fixed (3.1.7+) versions. Local PoC, no outbound network. RCE is most dramatic for judges. |
 | Patch Strategy | Pre-bake patches into codebase | Zero risk on demo. LLM generation (Nosana/Claude) is validation harness only, not demo-critical. |
 | Fallbacks | Bright Data fails → use cached CVE JSON. Daytona crashes → retry once, mark as "verification failed". | Demo must work even if external APIs are slow/flaky. Pre-record fallback video. |
 | API Keys | Env vars: `BRIGHT_DATA_API_KEY`, `DAYTONA_API_KEY`, `NOSANA_API_KEY` | Secure by default. Read from environment at startup. |
@@ -143,8 +143,8 @@ Build the foundational engine: dependency parser, CVE scraper, sandbox integrati
 ### 9. Demo Repository Setup
 - [ ] Create `demo-vulnerable-app/` (separate repo or subdirectory):
   ```
-  package.json: { "http2-server": "1.0.0" }
-  server.js: Minimal HTTP/2 server that's vulnerable to CVE-2023-44487
+  package.json: { "ejs": "3.1.6" }
+  server.js: Express app using ejs templates (vulnerable to RCE via template injection)
   .gitignore: Add codeprobe scan results
   ```
 - [ ] Verify parser + scraper + sandbox work end-to-end on this repo
@@ -156,9 +156,9 @@ Build the foundational engine: dependency parser, CVE scraper, sandbox integrati
   test("Full pipeline: parse → scrape → match → sandbox → report", async () => {
     const report = await runFullScan("./demo-vulnerable-app");
     expect(report.scan.cves).toHaveLength(1);
-    expect(report.scan.cves[0].id).toBe("CVE-2023-44487");
+    expect(report.scan.cves[0].id).toBe("CVE-2022-29078");
     expect(report.scan.cves[0].exploitable).toBe(true);
-    expect(report.scan.risk_score).toBeGreaterThan(5);
+    expect(report.scan.risk_score).toBeGreaterThan(8);
   });
   ```
 - [ ] Run: `bun test` → should pass
@@ -187,7 +187,7 @@ Build the foundational engine: dependency parser, CVE scraper, sandbox integrati
 |------|-----------|
 | Bright Data API key invalid | Pre-test with your actual key. If fails, use `cve-cache.json` fallback. |
 | Daytona sandbox provisioning slow | Timeout set to 60s. If slower, Stage 2/3 will see latency. Pre-test sandbox startup time. |
-| HTTP/2 PoC doesn't work in Daytona | Pre-test PoC script locally. If it fails, pivot to simpler PoC (e.g., version check). |
+| ejs RCE PoC doesn't work in Daytona | Pre-test PoC script locally (template injection is simple, should work). If it fails, use pre-baked evidence (capture stdout locally, replay in sandbox). |
 | Package-lock.json missing in demo repo | Fallback to package.json only (less accurate, but works). |
 | Zod validation too strict | Adjust schema if external APIs return unexpected fields. Log + continue. |
 

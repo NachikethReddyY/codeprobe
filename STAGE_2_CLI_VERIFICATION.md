@@ -48,15 +48,15 @@ Build the **CLI interface** and **production-grade fallback logic**. This is whe
     [12:34:59] Fetching CVE data (Bright Data)...
     [12:35:14] Found 3 CVEs matching your dependencies
     [12:35:15] Spinning up sandboxes for CRITICAL CVEs...
-    [12:35:16]   ├─ Sandbox 1: CVE-2023-44487 (HTTP/2 Rapid Reset)
+    [12:35:16]   ├─ Sandbox 1: CVE-2022-29078 (ejs Template Injection RCE)
     [12:35:17] Running exploit...
-    [12:36:17] ✓ CONFIRMED EXPLOITABLE (DoS achieved in 0.8s)
+    [12:36:17] ✓ CONFIRMED EXPLOITABLE (RCE achieved in 1.2s)
     
     ────────────────────────────────────────────────
     SCAN COMPLETE
-    Risk Score: 8.5/10 (HIGH)
+    Risk Score: 9.0/10 (CRITICAL)
     Confirmed Exploitable: 1
-    Theoretical Risk: 2
+    Theoretical Risk: 1
     
     Patches Available: 1
     View full report: ~/.codeprobe/scans/{scan_id}.json
@@ -81,7 +81,7 @@ Build the **CLI interface** and **production-grade fallback logic**. This is whe
   - Output:
     ```
     [12:36:20] Applying patches...
-    [12:36:25] ✓ Updated http2-server: 1.0.0 → 1.0.1
+    [12:36:25] ✓ Updated ejs: 3.1.6 → 3.1.7
     [12:36:26] Committed to branch: codeprobe-fix-2026-06-13-001
     [12:36:27] Push to GitHub: git push -u origin codeprobe-fix-2026-06-13-001
     ```
@@ -134,7 +134,7 @@ Build the **CLI interface** and **production-grade fallback logic**. This is whe
   test("CLI: scan demo repo end-to-end", async () => {
     const { exitCode, output } = await runCLI(["scan", "./demo-vulnerable-app"]);
     expect(exitCode).toBe(1); // 1 = vulnerabilities found
-    expect(output).toContain("CVE-2023-44487");
+    expect(output).toContain("CVE-2022-29078");
     expect(output).toContain("CONFIRMED EXPLOITABLE");
     expect(output).toContain("Risk Score");
   });
