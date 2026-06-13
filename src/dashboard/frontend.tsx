@@ -5,6 +5,7 @@ import { LoginPage } from "./pages/LoginPage.tsx";
 import { ScansListPage } from "./pages/ScansListPage.tsx";
 import { ScanDetailPage } from "./pages/ScanDetailPage.tsx";
 import { ErrorBoundary } from "./components/ErrorBoundary.tsx";
+import "./index.css";
 
 type Page = "login" | "list" | "detail";
 
