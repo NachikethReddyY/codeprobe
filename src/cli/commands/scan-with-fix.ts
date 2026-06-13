@@ -8,6 +8,10 @@ import { ProgressLogger } from '../progress.js';
 import { GitError, handleError } from '../errors.js';
 import { EXIT_CODES } from '../../shared/constants.js';
 
+function escapeShellArg(arg: string): string {
+  return `'${arg.replace(/'/g, "'\\''")}'`;
+}
+
 function checkGitRepo(): boolean {
   try {
     execSync('git rev-parse --git-dir', { encoding: 'utf-8', stdio: 'pipe' });
@@ -28,7 +32,7 @@ function isGitDirty(): boolean {
 
 function createBranch(name: string): void {
   try {
-    execSync(`git checkout -b ${name}`, { encoding: 'utf-8', stdio: 'pipe' });
+    execSync(`git checkout -b ${escapeShellArg(name)}`, { encoding: 'utf-8', stdio: 'pipe' });
   } catch {
     throw new GitError(`Failed to create branch: ${name}`);
   }
@@ -36,9 +40,15 @@ function createBranch(name: string): void {
 
 function commitAndPush(message: string, branchName: string): void {
   execSync('git add package.json', { encoding: 'utf-8', stdio: 'pipe' });
-  execSync(`git -c commit.gpgsign=false commit -m "${message}"`, { encoding: 'utf-8', stdio: 'pipe' });
+  execSync(`git -c commit.gpgsign=false commit -m ${escapeShellArg(message)}`, {
+    encoding: 'utf-8',
+    stdio: 'pipe',
+  });
   try {
-    execSync(`git push -u origin ${branchName}`, { encoding: 'utf-8', stdio: 'pipe' });
+    execSync(`git push -u origin ${escapeShellArg(branchName)}`, {
+      encoding: 'utf-8',
+      stdio: 'pipe',
+    });
   } catch {
     // Push failed — not fatal, user can push manually
   }

@@ -2,6 +2,7 @@ import { createEngine } from "../engine/index.js";
 import { PATHS } from "../shared/constants.js";
 import { readFile } from "fs/promises";
 import path from "path";
+import { randomBytes } from "crypto";
 
 interface MCPRequest {
   jsonrpc: string;
@@ -25,7 +26,7 @@ async function handleToolCall(method: string, params?: Record<string, unknown>):
   switch (method) {
     case "scan_repository": {
       const repoUrl = params?.repo_url as string;
-      const scanId = `scan-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const scanId = `scan-${Date.now()}-${randomBytes(4).toString('hex')}`;
 
       activeScan.set(scanId, { status: "running", progress: 0 });
 

@@ -1,4 +1,5 @@
 import chalk from 'chalk';
+import { randomBytes } from 'crypto';
 
 export function formatRiskScore(score: number): string {
   const level = getRiskLevel(score);
@@ -43,7 +44,7 @@ export function formatExploitable(exploitable: boolean): string {
 }
 
 export function generateScanId(): string {
-  return `scan_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+  return `scan_${Date.now()}_${randomBytes(6).toString('hex')}`;
 }
 
 export function bytesToHuman(bytes: number): string {

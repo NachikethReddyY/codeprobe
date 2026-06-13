@@ -1,6 +1,7 @@
 import { Scan, ScanCVE, Report } from "../shared/types";
 import { PATHS } from "../shared/constants";
 import dayjs from "dayjs";
+import { randomBytes } from "crypto";
 
 export class ReportBuilder {
   async buildReport(
@@ -66,7 +67,7 @@ export class ReportBuilder {
   }
 
   private generateScanId(): string {
-    return `scan_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `scan_${Date.now()}_${randomBytes(6).toString('hex')}`;
   }
 
   formatForTerminal(report: Report): string {

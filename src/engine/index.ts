@@ -6,6 +6,7 @@ import { createPatcher } from "./patcher";
 import { createReportBuilder } from "./report";
 import { Report, ScanCVE } from "../shared/types";
 import { findAllPackageJsons } from "../shared/file-scanner";
+import { createSASTScanner, CodeVulnerability } from "./sast";
 
 export class CodeProbeEngine {
   private parser = createParser();
@@ -14,9 +15,17 @@ export class CodeProbeEngine {
   private matcher = createMatcher();
   private patcher = createPatcher();
   private reportBuilder = createReportBuilder();
+  private sastScanner = createSASTScanner();
 
   getVideoRecorder() {
     return this.sandbox.getVideoRecorder();
+  }
+
+  async scanCodeVulnerabilities(rootPath: string): Promise<CodeVulnerability[]> {
+    console.log("🔐 Scanning source code for vulnerabilities...");
+    const vulnerabilities = await this.sastScanner.scanRepository(rootPath);
+    console.log(`   Found ${vulnerabilities.length} potential vulnerabilities`);
+    return vulnerabilities;
   }
 
   async scanRecursive(rootPath: string): Promise<Report> {
