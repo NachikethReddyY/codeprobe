@@ -1,10 +1,13 @@
 {
-  "name": "codeprobe",
+  "name": "@nrdevs/codeprobe",
   "version": "1.0.0",
-  "description": "Automated vulnerability scanner with exploit verification",
+  "description": "Automated vulnerability scanner with exploit verification and video evidence",
   "type": "module",
   "bin": {
     "codeprobe": "bin/install-and-run.sh"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "setup": "bin/install-and-run.sh"
