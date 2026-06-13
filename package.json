@@ -2,61 +2,32 @@
   "name": "codeprobe",
   "version": "1.0.0",
   "description": "Automated vulnerability scanner with exploit verification",
-  "module": "index.ts",
   "type": "module",
   "private": true,
   "bin": {
-    "codeprobe": "./src/cli/index.ts"
+    "codeprobe": "src/cli/index.ts"
   },
   "scripts": {
     "test": "bun test",
-    "dev": "bun --hot ./index.ts",
-    "build": "bun build ./index.ts"
+    "dev": "bun run src/api/server.ts",
+    "build": "bun build src/dashboard/frontend.tsx --outdir dist"
   },
   "dependencies": {
     "zod": "^3.22.4",
-    "axios": "^1.6.2",
+    "axios": "^1.6.5",
     "chalk": "^5.3.0",
     "dayjs": "^1.11.10",
     "cli-table3": "^0.6.3",
-    "ora": "^8.0.1"
-  "module": "index.ts",
-  "type": "module",
-  "private": true,
-  "scripts": {
-    "dev": "bun --hot src/api/server.ts",
-    "build": "bun build src/dashboard/frontend.tsx --outdir dist",
-    "test": "bun test"
-  },
-  "dependencies": {
+    "ora": "^8.0.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "tailwindcss": "^3.3.0"
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "@types/node": "latest",
+    "@types/node": "^20.10.6",
     "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0"
-  "bin": {
-    "codeprobe": "src/cli/index.ts"
-  },
-  "scripts": {
-    "test": "bun test",
-    "dev": "bun run src/cli/index.ts",
-    "build": "bun build src/cli/index.ts --outfile dist/codeprobe"
-  },
-  "dependencies": {
-    "chalk": "^5.3.0",
-    "dayjs": "^1.11.10",
-    "zod": "^3.22.4",
-    "axios": "^1.6.5"
-  },
-  "devDependencies": {
-    "@types/bun": "latest",
-    "@types/node": "^20.10.6"
-  },
-  "peerDependencies": {
+    "@types/react-dom": "^18.2.0",
     "typescript": "^5"
   }
 }
