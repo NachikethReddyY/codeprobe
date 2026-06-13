@@ -82,6 +82,20 @@ function displayReport(report: Report, json: boolean, durationMs: number): void 
   console.log(chalk.green(`Patches Available: ${patchCount}/${report.summary.total_cves}`));
   console.log(`Duration: ${msToHuman(durationMs)}`);
 
+  // Display SAST findings if available
+  if ((report as any).code_vulnerabilities && (report as any).code_vulnerabilities.length > 0) {
+    const codeVulns = (report as any).code_vulnerabilities;
+    console.log(chalk.bold('\n🔐 Source Code Vulnerabilities:'));
+    codeVulns.forEach((vuln: any) => {
+      const severity = vuln.severity === 'CRITICAL' ? chalk.red(vuln.severity)
+        : vuln.severity === 'HIGH' ? chalk.yellow(vuln.severity)
+        : vuln.severity === 'MEDIUM' ? chalk.cyan(vuln.severity)
+        : chalk.green(vuln.severity);
+      console.log(`  ${severity} ${vuln.type} in ${vuln.file}:${vuln.line}`);
+      console.log(`    ${vuln.description}`);
+    });
+  }
+
   if (report.scan.cves.length > 0) {
     console.log(chalk.bold('\nCVE Details:'));
     report.scan.cves.forEach((cve) => {
@@ -113,6 +127,27 @@ export async function scanCommand(args: string[]): Promise<void> {
 
     // Run recursive scan to find all package.json files
     const report = await engine.scanRecursive(repoPath);
+
+    // Also scan for source code vulnerabilities (SAST)
+    console.log("\n🔐 Analyzing source code for vulnerabilities...");
+    const codeVulnerabilities = await engine.scanCodeVulnerabilities(repoPath);
+
+    // If --fix flag is set, apply fixes to source code
+    if (options.fix && codeVulnerabilities.length > 0) {
+      const { createCodeFixer } = await import("../../engine/code-fixer.js");
+      const fixer = createCodeFixer();
+      console.log("\n🔧 Applying source code fixes...");
+      const fixes = await fixer.fixVulnerabilities(codeVulnerabilities);
+      console.log(`   Applied ${fixes.length} code fixes`);
+
+      if (fixes.length > 0) {
+        console.log("\n📝 Fixed vulnerabilities:");
+        fixes.forEach((fix) => {
+          console.log(`   - ${fix.file}:${fix.line}`);
+          console.log(`     Type: ${fix.type}`);
+        });
+      }
+    }
 
     const duration = Date.now() - startTime;
 
