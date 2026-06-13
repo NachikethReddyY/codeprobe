@@ -1,6 +1,6 @@
 {
   "name": "codeprobe-scanner",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "description": "Automated vulnerability scanner with exploit verification and video evidence",
   "type": "module",
   "bin": {

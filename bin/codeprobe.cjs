@@ -45,7 +45,7 @@ const cmd = `${bunCmd} run ${path.join(packageRoot, 'src/cli/index.ts')} ${args.
 try {
   execSync(cmd, {
     stdio: 'inherit',
-    cwd: packageRoot
+    cwd: process.cwd()
   });
 } catch (err) {
   process.exit(err.status || 1);

@@ -36,7 +36,7 @@ function createBranch(name: string): void {
 
 function commitAndPush(message: string, branchName: string): void {
   execSync('git add package.json', { encoding: 'utf-8', stdio: 'pipe' });
-  execSync(`git commit -m "${message}"`, { encoding: 'utf-8', stdio: 'pipe' });
+  execSync(`git -c commit.gpgsign=false commit -m "${message}"`, { encoding: 'utf-8', stdio: 'pipe' });
   try {
     execSync(`git push -u origin ${branchName}`, { encoding: 'utf-8', stdio: 'pipe' });
   } catch {
